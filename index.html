@@ -14,7 +14,8 @@
     <header class="header">
         <div class="container">
             <nav class="navbar">
-                <div class="logo">
+                <div class="logo" id="site-logo">
+                    <!-- Logo se cargará dinámicamente -->
                     <div class="logo-icon">
                         <i class="fas fa-newspaper"></i>
                     </div>
@@ -26,6 +27,7 @@
                     <li><a href="#news" class="nav-link">Noticias</a></li>
                     <li><a href="#categories" class="nav-link">Categorías</a></li>
                     <li><a href="#about" class="nav-link">Acerca</a></li>
+                    <li><a href="#embed" class="nav-link">Embed</a></li>
                     <li><a href="#" id="admin-access-btn" class="nav-link admin-access">
                         <i class="fas fa-user-cog"></i> Admin
                     </a></li>
@@ -133,7 +135,6 @@
                     <span class="recipe-count" id="count-cultura">0 noticias</span>
                 </div>
                 
-                <!-- NUEVA CATEGORÍA AGREGADA -->
                 <div class="category-card" data-category="celebridades">
                     <div class="category-icon">
                         <i class="fas fa-star"></i>
@@ -196,6 +197,79 @@
             <!-- News Grid -->
             <div class="recipes-grid" id="recipes-grid">
                 <!-- News will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Embed Section -->
+    <section class="embed-section" id="embed">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Incrusta Nuestras Noticias</h2>
+                <p class="section-subtitle">Comparte nuestras noticias en tu sitio web o blog</p>
+            </div>
+            
+            <div class="embed-content">
+                <div class="embed-preview">
+                    <div id="embed-preview-content">
+                        <!-- Vista previa del embed se cargará aquí -->
+                        <div class="embed-preview-placeholder">
+                            <i class="fas fa-code"></i>
+                            <p>Selecciona una noticia para generar el código embed</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="embed-controls">
+                    <div class="form-group">
+                        <label for="embed-news-select">Seleccionar Noticia</label>
+                        <select id="embed-news-select" class="embed-select">
+                            <option value="">Selecciona una noticia...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="embed-size">Tamaño del Embed</label>
+                        <select id="embed-size" class="embed-select">
+                            <option value="small">Pequeño (300px)</option>
+                            <option value="medium" selected>Mediano (400px)</option>
+                            <option value="large">Grande (500px)</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="custom-size-container" style="display: none;">
+                        <label for="custom-width">Ancho Personalizado (px)</label>
+                        <input type="number" id="custom-width" min="200" max="1000" value="400">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="embed-theme">Tema</label>
+                        <select id="embed-theme" class="embed-select">
+                            <option value="light" selected>Claro</option>
+                            <option value="dark">Oscuro</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="embed-code">Código Embed</label>
+                        <textarea id="embed-code" rows="4" readonly placeholder="El código embed aparecerá aquí..."></textarea>
+                        <button class="btn btn-secondary" id="copy-embed-btn">
+                            <i class="fas fa-copy"></i> Copiar Código
+                        </button>
+                    </div>
+                    
+                    <div class="embed-tips">
+                        <h4><i class="fas fa-lightbulb"></i> Instrucciones:</h4>
+                        <ol>
+                            <li>Selecciona una noticia de la lista</li>
+                            <li>Personaliza el tamaño y tema</li>
+                            <li>Copia el código generado</li>
+                            <li>Pega el código en tu sitio web o blog</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -328,6 +402,7 @@
                     <button class="tab-btn active" data-tab="news-tab">Noticias</button>
                     <button class="tab-btn" data-tab="add-news-tab">Agregar Noticia</button>
                     <button class="tab-btn" data-tab="edit-news-tab">Editar Noticia</button>
+                    <button class="tab-btn" data-tab="settings-tab">Configuración</button>
                 </div>
                 
                 <!-- News Management Tab -->
@@ -494,6 +569,60 @@
                     </form>
                     
                     <div id="edit-form-status" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Settings Tab -->
+                <div class="tab-content" id="settings-tab">
+                    <h4>Configuración del Sitio</h4>
+                    
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label for="site-logo-url">URL del Logo del Sitio</label>
+                            <input type="text" id="site-logo-url" placeholder="https://ejemplo.com/logo.png">
+                            <span class="form-hint">Pega la URL de tu logo. Debe ser una imagen PNG o JPG.</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="site-title">Título del Sitio</label>
+                            <input type="text" id="site-title" value="Zona Total Novedades">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="site-description">Descripción del Sitio</label>
+                            <textarea id="site-description" rows="3">Tu fuente confiable de noticias nacionales e internacionales, verificadas y actualizadas.</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="site-contact-email">Email de Contacto</label>
+                            <input type="email" id="site-contact-email" value="contacto@zonatotalnovedades.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="site-contact-phone">Teléfono de Contacto</label>
+                            <input type="text" id="site-contact-phone" value="+1 800-NOTICIAS">
+                        </div>
+                        
+                        <div class="preview-section">
+                            <h5>Vista Previa del Logo:</h5>
+                            <div id="logo-preview" class="logo-preview">
+                                <div class="logo-preview-default">
+                                    <i class="fas fa-newspaper"></i>
+                                    <span>Zona Total Novedades</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" id="save-settings-btn">
+                                <i class="fas fa-save"></i> Guardar Configuración
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="reset-logo-btn">
+                                <i class="fas fa-undo"></i> Restaurar Logo Predeterminado
+                            </button>
+                        </div>
+                        
+                        <div id="settings-status" style="margin-top: 20px;"></div>
+                    </div>
                 </div>
             </div>
         </div>
