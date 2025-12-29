@@ -1,6 +1,6 @@
 // =============== CONFIGURACIÓN SIMPLE ===============
 // URL de tu archivo JSON en GitHub
-const NEWS_JSON_URL = 'https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/news.json';
+const NEWS_JSON_URL = 'https://github.com/merencioreyna-sudo/zonatotalnovedades/blob/main/news.json';
 
 // Variables globales
 let news = [];
