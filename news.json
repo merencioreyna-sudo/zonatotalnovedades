@@ -1,0 +1,14 @@
+[
+    {
+        "id": 1,
+        "title": "Ejemplo de Noticia",
+        "description": "Esta es una noticia de ejemplo",
+        "category": "Nacional",
+        "country": "España",
+        "date": "2024-03-15",
+        "priority": "Alta",
+        "image": "https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800",
+        "content": "Contenido completo de la noticia aquí...",
+        "source": "Zona Total Novedades"
+    }
+]
