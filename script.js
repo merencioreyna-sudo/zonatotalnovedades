@@ -1,5 +1,5 @@
 // =============== CONFIGURACIÓN ===============
-// Usando Google Sheets como "base de datos" simple
+// Google Sheets como base de datos compartida
 const GOOGLE_SHEETS_ID = '1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ';
 const SHEET_GID = '1201005628';
 const GOOGLE_SHEETS_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=${SHEET_GID}`;
@@ -8,6 +8,13 @@ const GOOGLE_SHEETS_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET
 let news = [];
 let currentCategory = "todos";
 let searchQuery = "";
+let siteSettings = {
+    logoUrl: '',
+    siteTitle: 'Zona Total Novedades',
+    siteDescription: 'Tu fuente confiable de noticias nacionales e internacionales, verificadas y actualizadas.',
+    contactEmail: 'contacto@zonatotalnovedades.com',
+    contactPhone: '+1 800-NOTICIAS'
+};
 
 // =============== INICIALIZACIÓN ===============
 document.addEventListener('DOMContentLoaded', function() {
@@ -57,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Modal - ARREGLADO
+    // Modal
     const modalClose = document.getElementById('modal-close');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const recipeModal = document.getElementById('recipe-modal');
@@ -93,19 +100,117 @@ document.addEventListener('DOMContentLoaded', function() {
     const retryBtn = document.getElementById('retry-load-btn');
     if (retryBtn) {
         retryBtn.addEventListener('click', () => {
-            loadNews();
+            loadNewsFromGoogleSheets();
         });
     }
     
     // Configurar Admin
     setupAdmin();
     
-    // Cargar noticias
-    loadNews();
+    // Configurar Embed
+    setupEmbed();
+    
+    // Cargar configuración del sitio
+    loadSiteSettings();
+    
+    // Cargar noticias (pero vacías para empezar desde cero)
+    initializeEmptyNews();
 });
 
-// =============== CARGAR NOTICIAS ===============
-async function loadNews() {
+// =============== CONFIGURACIÓN DEL SITIO ===============
+function loadSiteSettings() {
+    try {
+        const savedSettings = localStorage.getItem('zona_total_settings');
+        if (savedSettings) {
+            siteSettings = JSON.parse(savedSettings);
+            console.log('⚙️ Configuración cargada:', siteSettings);
+            applySiteSettings();
+        }
+    } catch (error) {
+        console.error('Error cargando configuración:', error);
+    }
+}
+
+function saveSiteSettings() {
+    try {
+        localStorage.setItem('zona_total_settings', JSON.stringify(siteSettings));
+        console.log('💾 Configuración guardada:', siteSettings);
+        return true;
+    } catch (error) {
+        console.error('Error guardando configuración:', error);
+        return false;
+    }
+}
+
+function applySiteSettings() {
+    // Aplicar logo
+    const siteLogo = document.getElementById('site-logo');
+    if (siteLogo && siteSettings.logoUrl) {
+        siteLogo.innerHTML = `
+            <img src="${siteSettings.logoUrl}" alt="${siteSettings.siteTitle}" 
+                 style="max-height: 40px; max-width: 150px;">
+            <span class="logo-text">${siteSettings.siteTitle}</span>
+        `;
+    }
+    
+    // Aplicar título del sitio
+    const siteTitleElements = document.querySelectorAll('.site-title');
+    if (siteTitleElements.length > 0) {
+        siteTitleElements.forEach(el => {
+            el.textContent = siteSettings.siteTitle;
+        });
+    }
+    
+    // Aplicar descripción en el footer
+    const footerDescription = document.querySelector('.footer-logo p');
+    if (footerDescription) {
+        footerDescription.textContent = siteSettings.siteDescription;
+    }
+    
+    // Aplicar información de contacto
+    const contactEmail = document.querySelector('.footer-info p:nth-child(1)');
+    const contactPhone = document.querySelector('.footer-info p:nth-child(2)');
+    
+    if (contactEmail) {
+        contactEmail.innerHTML = `<i class="fas fa-envelope"></i> ${siteSettings.contactEmail}`;
+    }
+    if (contactPhone) {
+        contactPhone.innerHTML = `<i class="fas fa-phone"></i> ${siteSettings.contactPhone}`;
+    }
+}
+
+// =============== INICIALIZAR NOTICIAS VACÍAS ===============
+function initializeEmptyNews() {
+    console.log('Inicializando noticias vacías...');
+    news = []; // Vaciar el array de noticias
+    updateNewsCounts();
+    updateTotalNews();
+    renderNews();
+    
+    // Ocultar estados de carga
+    document.getElementById('loading-recipes').style.display = 'none';
+    document.getElementById('error-recipes').style.display = 'none';
+    
+    // Mostrar mensaje de que no hay noticias
+    const newsGrid = document.getElementById('recipes-grid');
+    if (newsGrid) {
+        newsGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
+                <i class="fas fa-newspaper" style="font-size: 4rem; color: #D4AF37; margin-bottom: 20px;"></i>
+                <h3 style="color: white; margin-bottom: 15px;">¡Bienvenido a Zona Total Novedades!</h3>
+                <p style="color: #cccccc; margin-bottom: 20px;">
+                    No hay noticias cargadas aún. Usa el panel de administración para agregar tu primera noticia.
+                </p>
+                <button onclick="showAdminPanel()" class="btn btn-primary" style="margin: 10px;">
+                    <i class="fas fa-user-cog"></i> Ir al Panel Admin
+                </button>
+            </div>
+        `;
+    }
+}
+
+// =============== CARGAR NOTICIAS DESDE GOOGLE SHEETS ===============
+async function loadNewsFromGoogleSheets() {
     try {
         console.log('📥 Cargando noticias desde Google Sheets...');
         document.getElementById('loading-recipes').style.display = 'flex';
@@ -145,33 +250,24 @@ async function loadNews() {
             }
         }
         
-        console.log(`✅ Total: ${news.length} noticias cargadas`);
-        
-        // Si no hay noticias, mostrar algunas de ejemplo
-        if (news.length === 0) {
-            console.log('⚠️ No hay noticias, mostrando ejemplos');
-            news = getExampleNews();
-        }
+        console.log(`✅ Total: ${news.length} noticias cargadas desde Google Sheets`);
         
         // Actualizar interfaz
         updateNewsCounts();
         updateTotalNews();
         renderNews();
         
+        // Actualizar selector de embed
+        updateEmbedSelector();
+        
         // Ocultar estados
         document.getElementById('loading-recipes').style.display = 'none';
         
     } catch (error) {
-        console.log('❌ Error cargando noticias:', error);
-        
-        // Usar noticias de ejemplo si hay error
-        news = getExampleNews();
-        
-        updateNewsCounts();
-        updateTotalNews();
-        renderNews();
+        console.log('❌ Error cargando noticias desde Google Sheets:', error);
         document.getElementById('loading-recipes').style.display = 'none';
-        document.getElementById('error-recipes').style.display = 'none';
+        document.getElementById('error-recipes').style.display = 'flex';
+        document.getElementById('error-message').textContent = 'Error al conectar con la base de datos.';
     }
 }
 
@@ -221,45 +317,32 @@ function fixImageUrl(url) {
     return fixedUrl;
 }
 
-function getExampleNews() {
-    return [
-        {
-            id: 1,
-            title: "Avances en Inteligencia Artificial Revolucionan la Medicina",
-            description: "Nuevos algoritmos de IA permiten diagnósticos más precisos y tratamientos personalizados.",
-            category: "Tecnología",
-            country: "EE.UU.",
-            date: "2024-03-15",
-            priority: "Alta",
-            image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&auto=format&fit=crop&q=80",
-            content: "Un equipo de investigadores de la Universidad de Stanford ha desarrollado un nuevo sistema de inteligencia artificial capaz de diagnosticar enfermedades con una precisión del 98%. El sistema, que ha sido entrenado con millones de imágenes médicas, podría revolucionar el campo de la medicina diagnóstica.\n\nLos expertos aseguran que esta tecnología permitirá detectar enfermedades en etapas más tempranas, lo que aumentará significativamente las tasas de supervivencia. Además, el sistema es capaz de personalizar tratamientos basándose en el perfil genético de cada paciente.",
-            source: "Nature Medicine"
-        },
-        {
-            id: 2,
-            title: "Acuerdo Histórico en la Cumbre Climática Global",
-            description: "Más de 150 países firman un acuerdo para reducir las emisiones de carbono en un 50% para 2030.",
-            category: "Internacional",
-            country: "Francia",
-            date: "2024-03-14",
-            priority: "Alta",
-            image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80",
-            content: "En una cumbre histórica celebrada en París, líderes mundiales de más de 150 países han alcanzado un acuerdo sin precedentes para combatir el cambio climático. El acuerdo establece metas ambiciosas para reducir las emisiones de gases de efecto invernadero en un 50% para el año 2030.\n\nEl presidente francés destacó que este acuerdo marca 'un punto de inflexión en la lucha contra el cambio climático'. Los países desarrollados se han comprometido a proporcionar 100 mil millones de dólares anuales a partir de 2025 para ayudar a los países en desarrollo en su transición energética.",
-            source: "ONU - United Nations"
-        },
-        {
-            id: 3,
-            title: "Economía Nacional Registra Crecimiento del 3.5% en el Primer Trimestre",
-            description: "Los indicadores económicos muestran una recuperación sólida impulsada por el sector tecnológico y exportaciones.",
-            category: "Nacional",
-            country: "España",
-            date: "2024-03-13",
-            priority: "Media",
-            image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80",
-            content: "El Instituto Nacional de Estadística ha publicado los datos del primer trimestre del año, mostrando un crecimiento del 3.5% en el PIB nacional. Este crecimiento supera las expectativas de los analistas, que pronosticaban un aumento del 2.8%.\n\nEl sector tecnológico ha sido el principal motor de este crecimiento, con un aumento del 12% en su producción. Las exportaciones también han mostrado un comportamiento positivo, creciendo un 8% respecto al mismo periodo del año anterior. Los expertos señalan que estos datos indican una recuperación sólida de la economía nacional.",
-            source: "INE - Instituto Nacional de Estadística"
+// =============== FUNCIONES DE PERSISTENCIA LOCAL ===============
+function saveNewsToLocalStorage() {
+    try {
+        localStorage.setItem('zona_total_novedades', JSON.stringify(news));
+        console.log('💾 Noticias guardadas en localStorage:', news.length);
+    } catch (error) {
+        console.error('Error guardando en localStorage:', error);
+    }
+}
+
+function loadNewsFromLocalStorage() {
+    try {
+        const savedNews = localStorage.getItem('zona_total_novedades');
+        if (savedNews) {
+            news = JSON.parse(savedNews);
+            console.log('📂 Noticias cargadas desde localStorage:', news.length);
+            updateNewsCounts();
+            updateTotalNews();
+            renderNews();
+            updateEmbedSelector();
+            return true;
         }
-    ];
+    } catch (error) {
+        console.error('Error cargando desde localStorage:', error);
+    }
+    return false;
 }
 
 // =============== RENDERIZAR NOTICIAS ===============
@@ -300,16 +383,21 @@ function renderNews() {
         newsGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
                 <i class="fas fa-newspaper" style="font-size: 4rem; color: #D4AF37; margin-bottom: 20px;"></i>
-                <h3 style="color: white; margin-bottom: 15px;">No se encontraron noticias</h3>
+                <h3 style="color: white; margin-bottom: 15px;">${news.length === 0 ? '¡Agrega tu primera noticia!' : 'No se encontraron noticias'}</h3>
                 <p style="color: #cccccc; margin-bottom: 20px;">
-                    ${searchQuery ? 'Prueba con otros términos de búsqueda' : 'No hay noticias en esta categoría'}
+                    ${searchQuery ? 'Prueba con otros términos de búsqueda' : 
+                      news.length === 0 ? 'Usa el panel de administración para agregar noticias' : 'No hay noticias en esta categoría'}
                 </p>
                 ${searchQuery ? 
                     '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 10px;">Limpiar búsqueda</button>' : 
                     ''
                 }
-                <button onclick="loadNews()" class="btn btn-secondary" style="margin: 10px;">
-                    <i class="fas fa-redo"></i> Recargar noticias
+                ${news.length === 0 ? 
+                    '<button onclick="showAdminPanel()" class="btn btn-primary" style="margin: 10px;"><i class="fas fa-user-cog"></i> Ir al Panel Admin</button>' : 
+                    ''
+                }
+                <button onclick="loadNewsFromGoogleSheets()" class="btn btn-secondary" style="margin: 10px;">
+                    <i class="fas fa-redo"></i> Recargar desde Google Sheets
                 </button>
             </div>
         `;
@@ -352,7 +440,9 @@ function renderNews() {
                     <button class="view-recipe-btn" onclick="openNewsModal(${item.id})">
                         <i class="fas fa-book-open"></i> Leer Noticia
                     </button>
-                    <span><i class="fas fa-flag"></i> ${item.country}</span>
+                    <button class="view-recipe-btn" onclick="generateEmbed(${item.id})" style="background-color: #6c757d;">
+                        <i class="fas fa-code"></i> Embed
+                    </button>
                 </div>
             </div>
         `;
@@ -396,7 +486,7 @@ function updateNewsCounts() {
     const totalElement = document.getElementById('total-news');
     if (totalElement) totalElement.textContent = news.length;
     
-    // Actualizar contadores por categoría - ACTUALIZADO PARA INCLUIR CELEBRIDADES
+    // Actualizar contadores por categoría
     const categories = ['nacional', 'internacional', 'economia', 'tecnologia', 'deportes', 'cultura', 'celebridades'];
     categories.forEach(cat => {
         const count = news.filter(n => normalizeCategory(n.category) === cat).length;
@@ -511,14 +601,14 @@ function openNewsModal(newsId) {
                 <div style="background-color: #333; padding: 20px; border-radius: 5px; text-align: center; border: 1px solid #444;">
                     <p style="color: #cccccc; margin-bottom: 15px;">Comparte esta noticia en redes sociales</p>
                     <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button class="btn btn-primary" style="padding: 8px 15px;">
+                        <button class="btn btn-primary" style="padding: 8px 15px;" onclick="shareOnTwitter(${item.id})">
                             <i class="fab fa-twitter"></i> Twitter
                         </button>
-                        <button class="btn btn-primary" style="padding: 8px 15px;">
+                        <button class="btn btn-primary" style="padding: 8px 15px;" onclick="shareOnFacebook(${item.id})">
                             <i class="fab fa-facebook"></i> Facebook
                         </button>
-                        <button class="btn btn-primary" style="padding: 8px 15px;">
-                            <i class="fab fa-whatsapp"></i> WhatsApp
+                        <button class="btn btn-primary" style="padding: 8px 15px;" onclick="generateEmbed(${item.id})">
+                            <i class="fas fa-code"></i> Embed
                         </button>
                     </div>
                 </div>
@@ -548,6 +638,270 @@ function closeModal() {
     }
 }
 
+// =============== SISTEMA EMBED ===============
+function setupEmbed() {
+    console.log('🔧 Configurando sistema embed...');
+    
+    // Selector de tamaño
+    const embedSizeSelect = document.getElementById('embed-size');
+    if (embedSizeSelect) {
+        embedSizeSelect.addEventListener('change', function() {
+            const customSizeContainer = document.getElementById('custom-size-container');
+            if (this.value === 'custom') {
+                customSizeContainer.style.display = 'block';
+            } else {
+                customSizeContainer.style.display = 'none';
+            }
+            updateEmbedPreview();
+        });
+    }
+    
+    // Selector de tema
+    const embedThemeSelect = document.getElementById('embed-theme');
+    if (embedThemeSelect) {
+        embedThemeSelect.addEventListener('change', updateEmbedPreview);
+    }
+    
+    // Input de ancho personalizado
+    const customWidthInput = document.getElementById('custom-width');
+    if (customWidthInput) {
+        customWidthInput.addEventListener('input', updateEmbedPreview);
+    }
+    
+    // Botón copiar embed
+    const copyEmbedBtn = document.getElementById('copy-embed-btn');
+    if (copyEmbedBtn) {
+        copyEmbedBtn.addEventListener('click', copyEmbedCode);
+    }
+    
+    // Selector de noticias para embed
+    const embedNewsSelect = document.getElementById('embed-news-select');
+    if (embedNewsSelect) {
+        embedNewsSelect.addEventListener('change', function() {
+            const newsId = parseInt(this.value);
+            if (newsId) {
+                generateEmbed(newsId);
+            }
+        });
+    }
+    
+    // Cargar selector de embed
+    updateEmbedSelector();
+}
+
+function updateEmbedSelector() {
+    const select = document.getElementById('embed-news-select');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Selecciona una noticia...</option>';
+    
+    news.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        const shortTitle = item.title.length > 50 ? item.title.substring(0, 47) + '...' : item.title;
+        option.textContent = `${shortTitle} (${item.category})`;
+        select.appendChild(option);
+    });
+}
+
+function generateEmbed(newsId) {
+    const item = news.find(n => n.id === newsId);
+    if (!item) {
+        alert('Noticia no encontrada');
+        return;
+    }
+    
+    // Ir a la sección de embed
+    document.getElementById('embed').scrollIntoView({ behavior: 'smooth' });
+    
+    // Seleccionar la noticia en el selector
+    const embedSelect = document.getElementById('embed-news-select');
+    if (embedSelect) {
+        embedSelect.value = newsId;
+    }
+    
+    // Actualizar vista previa y código
+    updateEmbedPreview();
+}
+
+function updateEmbedPreview() {
+    const embedSelect = document.getElementById('embed-news-select');
+    const newsId = parseInt(embedSelect.value);
+    
+    if (!newsId) {
+        // Mostrar placeholder
+        const previewContent = document.getElementById('embed-preview-content');
+        if (previewContent) {
+            previewContent.innerHTML = `
+                <div class="embed-preview-placeholder">
+                    <i class="fas fa-code"></i>
+                    <p>Selecciona una noticia para generar el código embed</p>
+                </div>
+            `;
+        }
+        document.getElementById('embed-code').value = '';
+        return;
+    }
+    
+    const item = news.find(n => n.id === newsId);
+    if (!item) return;
+    
+    // Obtener configuraciones
+    const size = document.getElementById('embed-size').value;
+    const theme = document.getElementById('embed-theme').value;
+    let width = 400; // Valor por defecto
+    
+    if (size === 'small') width = 300;
+    else if (size === 'medium') width = 400;
+    else if (size === 'large') width = 500;
+    else if (size === 'custom') {
+        const customWidth = document.getElementById('custom-width').value;
+        width = parseInt(customWidth) || 400;
+    }
+    
+    // Generar HTML para la vista previa
+    const previewHTML = generateEmbedHTML(item, width, theme, true);
+    const previewContent = document.getElementById('embed-preview-content');
+    if (previewContent) {
+        previewContent.innerHTML = previewHTML;
+    }
+    
+    // Generar código embed
+    const embedCode = generateEmbedCode(item, width, theme);
+    document.getElementById('embed-code').value = embedCode;
+}
+
+function generateEmbedHTML(item, width, theme, isPreview = false) {
+    const formattedDate = formatDate(item.date);
+    const themeClass = theme === 'dark' ? 'embed-dark' : 'embed-light';
+    
+    return `
+        <div class="embed-container ${themeClass}" style="width: ${width}px; max-width: 100%; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; font-family: Arial, sans-serif; margin: 0 auto;">
+            <div class="embed-header" style="background-color: ${theme === 'dark' ? '#0A1428' : '#0056B3'}; color: white; padding: 15px; text-align: center;">
+                <div style="font-weight: bold; font-size: 1.1em;">${siteSettings.siteTitle}</div>
+                <div style="font-size: 0.9em; opacity: 0.9;">Noticia Destacada</div>
+            </div>
+            
+            <div class="embed-image" style="height: 200px; overflow: hidden;">
+                <img src="${item.image}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            
+            <div class="embed-content" style="padding: 20px; background-color: ${theme === 'dark' ? '#1a1a1a' : '#ffffff'}; color: ${theme === 'dark' ? '#ffffff' : '#333333'};">
+                <h3 style="margin: 0 0 10px 0; font-size: 1.2em; line-height: 1.3;">${item.title}</h3>
+                <p style="margin: 0 0 15px 0; font-size: 0.95em; color: ${theme === 'dark' ? '#cccccc' : '#666666'};">
+                    ${item.description}
+                </p>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; color: ${theme === 'dark' ? '#999999' : '#888888'}; margin-top: 15px; padding-top: 15px; border-top: 1px solid ${theme === 'dark' ? '#333' : '#eee'};">
+                    <div>
+                        <span style="display: inline-block; padding: 3px 8px; background-color: ${theme === 'dark' ? '#0056B3' : '#e6f2ff'}; color: ${theme === 'dark' ? 'white' : '#0056B3'}; border-radius: 3px; margin-right: 10px;">
+                            ${item.category}
+                        </span>
+                        <span>${formattedDate}</span>
+                    </div>
+                    <div>
+                        ${isPreview ? 
+                            `<button style="background-color: ${theme === 'dark' ? '#C41230' : '#C41230'}; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">
+                                Ver más
+                            </button>` : 
+                            `<a href="${window.location.origin}${window.location.pathname}#news" target="_blank" style="background-color: ${theme === 'dark' ? '#C41230' : '#C41230'}; color: white; text-decoration: none; padding: 8px 15px; border-radius: 4px; display: inline-block; font-size: 0.9em;">
+                                Ver más
+                            </a>`
+                        }
+                    </div>
+                </div>
+            </div>
+            
+            <div class="embed-footer" style="background-color: ${theme === 'dark' ? '#0a0a0a' : '#f8f9fa'}; color: ${theme === 'dark' ? '#999' : '#666'}; padding: 10px 20px; text-align: center; font-size: 0.8em; border-top: 1px solid ${theme === 'dark' ? '#333' : '#eee'};">
+                <div>Fuente: ${item.source}</div>
+                <div style="margin-top: 5px;">© ${new Date().getFullYear()} ${siteSettings.siteTitle}</div>
+            </div>
+        </div>
+    `;
+}
+
+function generateEmbedCode(item, width, theme) {
+    const siteUrl = window.location.origin + window.location.pathname;
+    
+    return `<!-- Embed para Zona Total Novedades -->
+<div id="ztn-embed-${item.id}"></div>
+<script>
+    (function() {
+        var embedData = {
+            id: ${item.id},
+            title: "${item.title.replace(/"/g, '\\"')}",
+            description: "${item.description.replace(/"/g, '\\"')}",
+            image: "${item.image}",
+            category: "${item.category}",
+            date: "${item.date}",
+            source: "${item.source.replace(/"/g, '\\"')}",
+            width: ${width},
+            theme: "${theme}"
+        };
+        
+        var embedDiv = document.getElementById('ztn-embed-${item.id}');
+        var embedHTML = '<div style="width:' + embedData.width + 'px; max-width:100%; border:1px solid #ddd; border-radius:8px; overflow:hidden; font-family:Arial,sans-serif; margin:0 auto;">' +
+            '<div style="background-color:' + (embedData.theme === 'dark' ? '#0A1428' : '#0056B3') + '; color:white; padding:15px; text-align:center;">' +
+                '<div style="font-weight:bold; font-size:1.1em;">${siteSettings.siteTitle.replace(/"/g, '\\"')}</div>' +
+                '<div style="font-size:0.9em; opacity:0.9;">Noticia Destacada</div>' +
+            '</div>' +
+            '<div style="height:200px; overflow:hidden;">' +
+                '<img src="${item.image}" alt="${item.title.replace(/"/g, '\\"')}" style="width:100%; height:100%; object-fit:cover;">' +
+            '</div>' +
+            '<div style="padding:20px; background-color:' + (embedData.theme === 'dark' ? '#1a1a1a' : '#ffffff') + '; color:' + (embedData.theme === 'dark' ? '#ffffff' : '#333333') + ';">' +
+                '<h3 style="margin:0 0 10px 0; font-size:1.2em; line-height:1.3;">${item.title.replace(/"/g, '\\"')}</h3>' +
+                '<p style="margin:0 0 15px 0; font-size:0.95em; color:' + (embedData.theme === 'dark' ? '#cccccc' : '#666666') + ';">' +
+                    '${item.description.replace(/"/g, '\\"')}' +
+                '</p>' +
+                '<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85em; color:' + (embedData.theme === 'dark' ? '#999999' : '#888888') + '; margin-top:15px; padding-top:15px; border-top:1px solid ' + (embedData.theme === 'dark' ? '#333' : '#eee') + ';">' +
+                    '<div>' +
+                        '<span style="display:inline-block; padding:3px 8px; background-color:' + (embedData.theme === 'dark' ? '#0056B3' : '#e6f2ff') + '; color:' + (embedData.theme === 'dark' ? 'white' : '#0056B3') + '; border-radius:3px; margin-right:10px;">' +
+                            '${item.category}' +
+                        '</span>' +
+                        '<span>${formatDate(item.date)}</span>' +
+                    '</div>' +
+                    '<div>' +
+                        '<a href="${siteUrl}#news" target="_blank" style="background-color:#C41230; color:white; text-decoration:none; padding:8px 15px; border-radius:4px; display:inline-block; font-size:0.9em;">' +
+                            'Ver más' +
+                        '</a>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="background-color:' + (embedData.theme === 'dark' ? '#0a0a0a' : '#f8f9fa') + '; color:' + (embedData.theme === 'dark' ? '#999' : '#666') + '; padding:10px 20px; text-align:center; font-size:0.8em; border-top:1px solid ' + (embedData.theme === 'dark' ? '#333' : '#eee') + ';">' +
+                '<div>Fuente: ${item.source.replace(/"/g, '\\"')}</div>' +
+                '<div style="margin-top:5px;">© ${new Date().getFullYear()} ${siteSettings.siteTitle.replace(/"/g, '\\"')}</div>' +
+            '</div>' +
+        '</div>';
+        
+        embedDiv.innerHTML = embedHTML;
+    })();
+</script>
+<!-- Fin del embed -->`;
+}
+
+function copyEmbedCode() {
+    const embedCode = document.getElementById('embed-code');
+    if (!embedCode || !embedCode.value) {
+        alert('No hay código para copiar. Primero selecciona una noticia.');
+        return;
+    }
+    
+    embedCode.select();
+    embedCode.setSelectionRange(0, 99999); // Para móviles
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            alert('¡Código copiado al portapapeles! Ahora puedes pegarlo en tu sitio web.');
+        } else {
+            alert('Error al copiar el código. Intenta seleccionar y copiar manualmente.');
+        }
+    } catch (err) {
+        console.error('Error al copiar:', err);
+        alert('Error al copiar el código. Intenta seleccionar y copiar manualmente.');
+    }
+}
+
 // =============== ADMIN COMPLETO ===============
 function setupAdmin() {
     console.log('🔧 Configurando panel admin...');
@@ -558,16 +912,7 @@ function setupAdmin() {
         adminAccessBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('👤 Click en botón Admin');
-            const adminOverlay = document.getElementById('admin-overlay');
-            if (adminOverlay) {
-                adminOverlay.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-                
-                // Mostrar credenciales automáticamente
-                const loginHint = document.getElementById('login-hint');
-                if (loginHint) loginHint.classList.add('active');
-            }
+            showAdminPanel();
         });
     }
     
@@ -588,6 +933,9 @@ function setupAdmin() {
                 
                 // Cargar noticias en el admin
                 loadAdminNews();
+                
+                // Cargar configuración en el formulario
+                loadSettingsForm();
                 
                 // Establecer fecha por defecto en formulario de agregar
                 const today = new Date().toISOString().split('T')[0];
@@ -669,27 +1017,16 @@ function setupAdmin() {
             if (tabId === 'edit-news-tab') {
                 loadEditSelector();
             }
+            // Si es la tab de configuración, cargar vista previa del logo
+            if (tabId === 'settings-tab') {
+                updateLogoPreview();
+            }
         });
     });
     
-    // 7. Formulario agregar noticia - ACTUALIZADO PARA INCLUIR CELEBRIDADES
+    // 7. Formulario agregar noticia
     const addNewsForm = document.getElementById('add-recipe-form');
     if (addNewsForm) {
-        // Actualizar opciones de categoría en el select
-        const categorySelect = document.getElementById('new-recipe-category');
-        if (categorySelect) {
-            categorySelect.innerHTML = `
-                <option value="">Seleccionar categoría</option>
-                <option value="Nacional">Nacional</option>
-                <option value="Internacional">Internacional</option>
-                <option value="Economía">Economía</option>
-                <option value="Tecnología">Tecnología</option>
-                <option value="Deportes">Deportes</option>
-                <option value="Cultura">Cultura</option>
-                <option value="Celebridades">Celebridades</option>
-            `;
-        }
-        
         addNewsForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -727,13 +1064,17 @@ function setupAdmin() {
             // Agregar a la lista
             news.unshift(newNews); // Agregar al principio
             
+            // Guardar en localStorage
+            saveNewsToLocalStorage();
+            
             // Actualizar interfaz
             updateNewsCounts();
             updateTotalNews();
             renderNews();
+            updateEmbedSelector();
             
             // Mostrar éxito
-            showFormStatus('✅ Noticia agregada correctamente. Los cambios se reflejan en todos los dispositivos.', 'success');
+            showFormStatus('✅ Noticia agregada correctamente. Los cambios se guardaron localmente.', 'success');
             
             // Limpiar formulario
             addNewsForm.reset();
@@ -750,24 +1091,9 @@ function setupAdmin() {
         });
     }
     
-    // 8. Formulario editar noticia - ACTUALIZADO PARA INCLUIR CELEBRIDADES
+    // 8. Formulario editar noticia
     const editNewsForm = document.getElementById('edit-recipe-form');
     if (editNewsForm) {
-        // Actualizar opciones de categoría en el select
-        const editCategorySelect = document.getElementById('edit-recipe-category');
-        if (editCategorySelect) {
-            editCategorySelect.innerHTML = `
-                <option value="">Seleccionar categoría</option>
-                <option value="Nacional">Nacional</option>
-                <option value="Internacional">Internacional</option>
-                <option value="Economía">Economía</option>
-                <option value="Tecnología">Tecnología</option>
-                <option value="Deportes">Deportes</option>
-                <option value="Cultura">Cultura</option>
-                <option value="Celebridades">Celebridades</option>
-            `;
-        }
-        
         editNewsForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -790,13 +1116,17 @@ function setupAdmin() {
             news[newsIndex].content = document.getElementById('edit-recipe-ingredients').value;
             news[newsIndex].source = document.getElementById('edit-recipe-instructions').value;
             
+            // Guardar cambios en localStorage
+            saveNewsToLocalStorage();
+            
             // Actualizar interfaz
             updateNewsCounts();
             updateTotalNews();
             renderNews();
+            updateEmbedSelector();
             
             // Mostrar éxito
-            showEditFormStatus('✅ Noticia actualizada correctamente. Los cambios se reflejan en todos los dispositivos.', 'success');
+            showEditFormStatus('✅ Noticia actualizada correctamente. Los cambios se guardaron localmente.', 'success');
             
             // Actualizar lista admin
             loadAdminNews();
@@ -823,10 +1153,14 @@ function setupAdmin() {
                 if (newsIndex !== -1) {
                     const deletedNews = news.splice(newsIndex, 1)[0];
                     
+                    // Guardar cambios en localStorage
+                    saveNewsToLocalStorage();
+                    
                     // Actualizar interfaz
                     updateNewsCounts();
                     updateTotalNews();
                     renderNews();
+                    updateEmbedSelector();
                     
                     // Limpiar formulario
                     editNewsForm.reset();
@@ -834,7 +1168,7 @@ function setupAdmin() {
                     document.getElementById('edit-recipe-select').value = '';
                     
                     // Mostrar éxito
-                    showEditFormStatus(`✅ Noticia "${deletedNews.title}" eliminada correctamente.`, 'success');
+                    showEditFormStatus(`✅ Noticia "${deletedNews.title}" eliminada correctamente. Los cambios se guardaron localmente.`, 'success');
                     
                     // Actualizar lista admin
                     loadAdminNews();
@@ -855,7 +1189,26 @@ function setupAdmin() {
         });
     }
     
-    // 11. Cerrar admin con Escape
+    // 11. Configuración del sitio
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', saveSettings);
+    }
+    
+    const resetLogoBtn = document.getElementById('reset-logo-btn');
+    if (resetLogoBtn) {
+        resetLogoBtn.addEventListener('click', function() {
+            document.getElementById('site-logo-url').value = '';
+            updateLogoPreview();
+        });
+    }
+    
+    const logoUrlInput = document.getElementById('site-logo-url');
+    if (logoUrlInput) {
+        logoUrlInput.addEventListener('input', updateLogoPreview);
+    }
+    
+    // 12. Cerrar admin con Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const adminOverlay = document.getElementById('admin-overlay');
@@ -869,6 +1222,82 @@ function setupAdmin() {
     console.log('✅ Admin configurado correctamente');
 }
 
+function loadSettingsForm() {
+    // Cargar valores actuales en el formulario de configuración
+    document.getElementById('site-logo-url').value = siteSettings.logoUrl || '';
+    document.getElementById('site-title').value = siteSettings.siteTitle;
+    document.getElementById('site-description').value = siteSettings.siteDescription;
+    document.getElementById('site-contact-email').value = siteSettings.contactEmail;
+    document.getElementById('site-contact-phone').value = siteSettings.contactPhone;
+    
+    updateLogoPreview();
+}
+
+function updateLogoPreview() {
+    const logoUrl = document.getElementById('site-logo-url').value;
+    const logoPreview = document.getElementById('logo-preview');
+    
+    if (!logoPreview) return;
+    
+    if (logoUrl) {
+        logoPreview.innerHTML = `
+            <img src="${logoUrl}" alt="Logo preview" 
+                 style="max-height: 60px; max-width: 200px; object-fit: contain;">
+            <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                Vista previa del logo
+            </div>
+        `;
+    } else {
+        logoPreview.innerHTML = `
+            <div class="logo-preview-default">
+                <i class="fas fa-newspaper"></i>
+                <span>Zona Total Novedades</span>
+            </div>
+        `;
+    }
+}
+
+function saveSettings() {
+    // Obtener valores del formulario
+    siteSettings.logoUrl = document.getElementById('site-logo-url').value.trim();
+    siteSettings.siteTitle = document.getElementById('site-title').value.trim();
+    siteSettings.siteDescription = document.getElementById('site-description').value.trim();
+    siteSettings.contactEmail = document.getElementById('site-contact-email').value.trim();
+    siteSettings.contactPhone = document.getElementById('site-contact-phone').value.trim();
+    
+    // Validar
+    if (!siteSettings.siteTitle) {
+        showSettingsStatus('El título del sitio es requerido', 'error');
+        return;
+    }
+    
+    // Guardar configuración
+    if (saveSiteSettings()) {
+        // Aplicar cambios inmediatamente
+        applySiteSettings();
+        
+        // Actualizar vista previa del logo
+        updateLogoPreview();
+        
+        // Mostrar mensaje de éxito
+        showSettingsStatus('✅ Configuración guardada correctamente. Los cambios se aplicaron inmediatamente.', 'success');
+        
+        console.log('⚙️ Configuración actualizada:', siteSettings);
+    } else {
+        showSettingsStatus('Error al guardar la configuración', 'error');
+    }
+}
+
+function showAdminPanel() {
+    console.log('👤 Mostrando panel admin');
+    document.getElementById('admin-overlay').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Mostrar credenciales automáticamente
+    const loginHint = document.getElementById('login-hint');
+    if (loginHint) loginHint.classList.add('active');
+}
+
 function loadAdminNews() {
     console.log('📋 Cargando noticias en panel admin...');
     const adminNewsList = document.getElementById('admin-recipes-list');
@@ -880,9 +1309,7 @@ function loadAdminNews() {
             <div style="text-align: center; padding: 40px; color: #cccccc;">
                 <i class="fas fa-newspaper" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
                 <p>No hay noticias cargadas.</p>
-                <button onclick="loadNews()" class="btn btn-primary" style="margin-top: 20px;">
-                    <i class="fas fa-redo"></i> Cargar Noticias
-                </button>
+                <p style="font-size: 0.9rem; margin-top: 10px;">Usa el formulario "Agregar Noticia" para comenzar.</p>
             </div>
         `;
         return;
@@ -995,6 +1422,24 @@ function showEditFormStatus(message, type) {
     }, 5000);
 }
 
+function showSettingsStatus(message, type) {
+    const statusDiv = document.getElementById('settings-status');
+    if (!statusDiv) return;
+    
+    statusDiv.innerHTML = `
+        <div style="padding: 15px; border-radius: 4px; margin-top: 10px; 
+                    background-color: ${type === 'success' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)'}; 
+                    border-left: 4px solid ${type === 'success' ? '#4CAF50' : '#F44336'}; 
+                    color: ${type === 'success' ? '#4CAF50' : '#F44336'};">
+            ${message}
+        </div>
+    `;
+    
+    setTimeout(() => {
+        statusDiv.innerHTML = '';
+    }, 5000);
+}
+
 // =============== FUNCIONES GLOBALES ===============
 window.clearSearch = function() {
     searchQuery = '';
@@ -1003,9 +1448,26 @@ window.clearSearch = function() {
     renderNews();
 };
 
+// Funciones de compartir
+window.shareOnTwitter = function(newsId) {
+    const item = news.find(n => n.id === newsId);
+    if (!item) return;
+    
+    const text = encodeURIComponent(`📰 ${item.title} - ${siteSettings.siteTitle}`);
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+};
+
+window.shareOnFacebook = function(newsId) {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+};
+
 // Asegurar que las funciones sean globales
 window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
-window.loadNews = loadNews;
+window.loadNewsFromGoogleSheets = loadNewsFromGoogleSheets;
 window.loadNewsToEdit = loadNewsToEdit;
 window.clearSearch = clearSearch;
+window.showAdminPanel = showAdminPanel;
+window.generateEmbed = generateEmbed;
