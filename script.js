@@ -107,13 +107,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar Admin
     setupAdmin();
     
-    // Configurar Embed
-    setupEmbed();
-    
     // Cargar configuración del sitio
     loadSiteSettings();
     
-    // Cargar noticias (pero vacías para empezar desde cero)
+    // Inicializar noticias vacías
     initializeEmptyNews();
 });
 
@@ -148,18 +145,13 @@ function applySiteSettings() {
     if (siteLogo && siteSettings.logoUrl) {
         siteLogo.innerHTML = `
             <img src="${siteSettings.logoUrl}" alt="${siteSettings.siteTitle}" 
-                 style="max-height: 40px; max-width: 150px;">
+                 style="max-height: 40px; max-width: 150px; object-fit: contain;">
             <span class="logo-text">${siteSettings.siteTitle}</span>
         `;
     }
     
-    // Aplicar título del sitio
-    const siteTitleElements = document.querySelectorAll('.site-title');
-    if (siteTitleElements.length > 0) {
-        siteTitleElements.forEach(el => {
-            el.textContent = siteSettings.siteTitle;
-        });
-    }
+    // Aplicar título del sitio en la página
+    document.title = siteSettings.siteTitle;
     
     // Aplicar descripción en el footer
     const footerDescription = document.querySelector('.footer-logo p');
@@ -190,23 +182,6 @@ function initializeEmptyNews() {
     // Ocultar estados de carga
     document.getElementById('loading-recipes').style.display = 'none';
     document.getElementById('error-recipes').style.display = 'none';
-    
-    // Mostrar mensaje de que no hay noticias
-    const newsGrid = document.getElementById('recipes-grid');
-    if (newsGrid) {
-        newsGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
-                <i class="fas fa-newspaper" style="font-size: 4rem; color: #D4AF37; margin-bottom: 20px;"></i>
-                <h3 style="color: white; margin-bottom: 15px;">¡Bienvenido a Zona Total Novedades!</h3>
-                <p style="color: #cccccc; margin-bottom: 20px;">
-                    No hay noticias cargadas aún. Usa el panel de administración para agregar tu primera noticia.
-                </p>
-                <button onclick="showAdminPanel()" class="btn btn-primary" style="margin: 10px;">
-                    <i class="fas fa-user-cog"></i> Ir al Panel Admin
-                </button>
-            </div>
-        `;
-    }
 }
 
 // =============== CARGAR NOTICIAS DESDE GOOGLE SHEETS ===============
@@ -257,7 +232,7 @@ async function loadNewsFromGoogleSheets() {
         updateTotalNews();
         renderNews();
         
-        // Actualizar selector de embed
+        // Actualizar selectores en el admin
         updateEmbedSelector();
         
         // Ocultar estados
@@ -380,25 +355,29 @@ function renderNews() {
     
     // Si no hay noticias después de filtrar
     if (filteredNews.length === 0) {
+        const message = news.length === 0 ? 
+            'No hay noticias cargadas aún. Usa el panel de administración para agregar tu primera noticia.' :
+            (searchQuery ? 
+                'No se encontraron noticias con esos términos de búsqueda. Prueba con otras palabras.' :
+                'No hay noticias en esta categoría.');
+        
         newsGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
-                <i class="fas fa-newspaper" style="font-size: 4rem; color: #D4AF37; margin-bottom: 20px;"></i>
-                <h3 style="color: white; margin-bottom: 15px;">${news.length === 0 ? '¡Agrega tu primera noticia!' : 'No se encontraron noticias'}</h3>
-                <p style="color: #cccccc; margin-bottom: 20px;">
-                    ${searchQuery ? 'Prueba con otros términos de búsqueda' : 
-                      news.length === 0 ? 'Usa el panel de administración para agregar noticias' : 'No hay noticias en esta categoría'}
+            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; background-color: rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                <i class="fas fa-newspaper" style="font-size: 4rem; color: #6c757d; margin-bottom: 20px; opacity: 0.5;"></i>
+                <h3 style="color: var(--text-dark); margin-bottom: 15px; font-weight: 400;">
+                    ${news.length === 0 ? '¡Bienvenido a Zona Total Novedades!' : 'No se encontraron noticias'}
+                </h3>
+                <p style="color: var(--text-gray); margin-bottom: 25px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    ${message}
                 </p>
                 ${searchQuery ? 
-                    '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 10px;">Limpiar búsqueda</button>' : 
+                    '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 5px;">Limpiar búsqueda</button>' : 
                     ''
                 }
                 ${news.length === 0 ? 
-                    '<button onclick="showAdminPanel()" class="btn btn-primary" style="margin: 10px;"><i class="fas fa-user-cog"></i> Ir al Panel Admin</button>' : 
+                    '<button onclick="loadNewsFromGoogleSheets()" class="btn btn-secondary" style="margin: 5px;">Cargar desde Google Sheets</button>' : 
                     ''
                 }
-                <button onclick="loadNewsFromGoogleSheets()" class="btn btn-secondary" style="margin: 10px;">
-                    <i class="fas fa-redo"></i> Recargar desde Google Sheets
-                </button>
             </div>
         `;
         return;
@@ -439,9 +418,6 @@ function renderNews() {
                 <div class="recipe-actions">
                     <button class="view-recipe-btn" onclick="openNewsModal(${item.id})">
                         <i class="fas fa-book-open"></i> Leer Noticia
-                    </button>
-                    <button class="view-recipe-btn" onclick="generateEmbed(${item.id})" style="background-color: #6c757d;">
-                        <i class="fas fa-code"></i> Embed
                     </button>
                 </div>
             </div>
@@ -499,15 +475,6 @@ function updateTotalNews() {
     const element = document.getElementById('total-news');
     if (element) {
         element.textContent = news.length;
-        // Animación del contador
-        element.style.opacity = '0.5';
-        setTimeout(() => {
-            element.style.opacity = '1';
-            element.style.transform = 'scale(1.1)';
-            setTimeout(() => {
-                element.style.transform = 'scale(1)';
-            }, 300);
-        }, 50);
     }
 }
 
@@ -607,9 +574,6 @@ function openNewsModal(newsId) {
                         <button class="btn btn-primary" style="padding: 8px 15px;" onclick="shareOnFacebook(${item.id})">
                             <i class="fab fa-facebook"></i> Facebook
                         </button>
-                        <button class="btn btn-primary" style="padding: 8px 15px;" onclick="generateEmbed(${item.id})">
-                            <i class="fas fa-code"></i> Embed
-                        </button>
                     </div>
                 </div>
             </div>
@@ -642,55 +606,50 @@ function closeModal() {
 function setupEmbed() {
     console.log('🔧 Configurando sistema embed...');
     
-    // Selector de tamaño
-    const embedSizeSelect = document.getElementById('embed-size');
+    // Selector de tamaño en admin
+    const embedSizeSelect = document.getElementById('admin-embed-size');
     if (embedSizeSelect) {
         embedSizeSelect.addEventListener('change', function() {
-            const customSizeContainer = document.getElementById('custom-size-container');
+            const customSizeContainer = document.getElementById('admin-custom-size-container');
             if (this.value === 'custom') {
                 customSizeContainer.style.display = 'block';
             } else {
                 customSizeContainer.style.display = 'none';
             }
-            updateEmbedPreview();
+            updateAdminEmbedPreview();
         });
     }
     
-    // Selector de tema
-    const embedThemeSelect = document.getElementById('embed-theme');
+    // Selector de tema en admin
+    const embedThemeSelect = document.getElementById('admin-embed-theme');
     if (embedThemeSelect) {
-        embedThemeSelect.addEventListener('change', updateEmbedPreview);
+        embedThemeSelect.addEventListener('change', updateAdminEmbedPreview);
     }
     
-    // Input de ancho personalizado
-    const customWidthInput = document.getElementById('custom-width');
+    // Input de ancho personalizado en admin
+    const customWidthInput = document.getElementById('admin-custom-width');
     if (customWidthInput) {
-        customWidthInput.addEventListener('input', updateEmbedPreview);
+        customWidthInput.addEventListener('input', updateAdminEmbedPreview);
     }
     
-    // Botón copiar embed
-    const copyEmbedBtn = document.getElementById('copy-embed-btn');
+    // Botón copiar embed en admin
+    const copyEmbedBtn = document.getElementById('admin-copy-embed-btn');
     if (copyEmbedBtn) {
-        copyEmbedBtn.addEventListener('click', copyEmbedCode);
+        copyEmbedBtn.addEventListener('click', copyAdminEmbedCode);
     }
     
-    // Selector de noticias para embed
-    const embedNewsSelect = document.getElementById('embed-news-select');
+    // Selector de noticias para embed en admin
+    const embedNewsSelect = document.getElementById('admin-embed-news-select');
     if (embedNewsSelect) {
-        embedNewsSelect.addEventListener('change', function() {
-            const newsId = parseInt(this.value);
-            if (newsId) {
-                generateEmbed(newsId);
-            }
-        });
+        embedNewsSelect.addEventListener('change', updateAdminEmbedPreview);
     }
     
-    // Cargar selector de embed
+    // Cargar selector de embed en admin
     updateEmbedSelector();
 }
 
 function updateEmbedSelector() {
-    const select = document.getElementById('embed-news-select');
+    const select = document.getElementById('admin-embed-news-select');
     if (!select) return;
     
     select.innerHTML = '<option value="">Selecciona una noticia...</option>';
@@ -704,42 +663,22 @@ function updateEmbedSelector() {
     });
 }
 
-function generateEmbed(newsId) {
-    const item = news.find(n => n.id === newsId);
-    if (!item) {
-        alert('Noticia no encontrada');
-        return;
-    }
-    
-    // Ir a la sección de embed
-    document.getElementById('embed').scrollIntoView({ behavior: 'smooth' });
-    
-    // Seleccionar la noticia en el selector
-    const embedSelect = document.getElementById('embed-news-select');
-    if (embedSelect) {
-        embedSelect.value = newsId;
-    }
-    
-    // Actualizar vista previa y código
-    updateEmbedPreview();
-}
-
-function updateEmbedPreview() {
-    const embedSelect = document.getElementById('embed-news-select');
+function updateAdminEmbedPreview() {
+    const embedSelect = document.getElementById('admin-embed-news-select');
     const newsId = parseInt(embedSelect.value);
     
     if (!newsId) {
         // Mostrar placeholder
-        const previewContent = document.getElementById('embed-preview-content');
+        const previewContent = document.getElementById('admin-embed-preview');
         if (previewContent) {
             previewContent.innerHTML = `
                 <div class="embed-preview-placeholder">
                     <i class="fas fa-code"></i>
-                    <p>Selecciona una noticia para generar el código embed</p>
+                    <p>Selecciona una noticia para ver la vista previa</p>
                 </div>
             `;
         }
-        document.getElementById('embed-code').value = '';
+        document.getElementById('admin-embed-code').value = '';
         return;
     }
     
@@ -747,28 +686,28 @@ function updateEmbedPreview() {
     if (!item) return;
     
     // Obtener configuraciones
-    const size = document.getElementById('embed-size').value;
-    const theme = document.getElementById('embed-theme').value;
+    const size = document.getElementById('admin-embed-size').value;
+    const theme = document.getElementById('admin-embed-theme').value;
     let width = 400; // Valor por defecto
     
     if (size === 'small') width = 300;
     else if (size === 'medium') width = 400;
     else if (size === 'large') width = 500;
     else if (size === 'custom') {
-        const customWidth = document.getElementById('custom-width').value;
+        const customWidth = document.getElementById('admin-custom-width').value;
         width = parseInt(customWidth) || 400;
     }
     
     // Generar HTML para la vista previa
     const previewHTML = generateEmbedHTML(item, width, theme, true);
-    const previewContent = document.getElementById('embed-preview-content');
+    const previewContent = document.getElementById('admin-embed-preview');
     if (previewContent) {
         previewContent.innerHTML = previewHTML;
     }
     
     // Generar código embed
     const embedCode = generateEmbedCode(item, width, theme);
-    document.getElementById('embed-code').value = embedCode;
+    document.getElementById('admin-embed-code').value = embedCode;
 }
 
 function generateEmbedHTML(item, width, theme, isPreview = false) {
@@ -879,8 +818,8 @@ function generateEmbedCode(item, width, theme) {
 <!-- Fin del embed -->`;
 }
 
-function copyEmbedCode() {
-    const embedCode = document.getElementById('embed-code');
+function copyAdminEmbedCode() {
+    const embedCode = document.getElementById('admin-embed-code');
     if (!embedCode || !embedCode.value) {
         alert('No hay código para copiar. Primero selecciona una noticia.');
         return;
@@ -1016,6 +955,11 @@ function setupAdmin() {
             // Si es la tab de editar, cargar selector
             if (tabId === 'edit-news-tab') {
                 loadEditSelector();
+            }
+            // Si es la tab de embed, actualizar vista previa
+            if (tabId === 'embed-tab') {
+                updateEmbedSelector();
+                updateAdminEmbedPreview();
             }
             // Si es la tab de configuración, cargar vista previa del logo
             if (tabId === 'settings-tab') {
@@ -1218,6 +1162,9 @@ function setupAdmin() {
             }
         }
     });
+    
+    // Configurar sistema embed
+    setupEmbed();
     
     console.log('✅ Admin configurado correctamente');
 }
@@ -1470,4 +1417,3 @@ window.loadNewsFromGoogleSheets = loadNewsFromGoogleSheets;
 window.loadNewsToEdit = loadNewsToEdit;
 window.clearSearch = clearSearch;
 window.showAdminPanel = showAdminPanel;
-window.generateEmbed = generateEmbed;
