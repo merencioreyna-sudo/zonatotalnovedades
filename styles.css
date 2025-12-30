@@ -1636,3 +1636,67 @@ p {
 .justify-between { justify-content: space-between; }
 .gap-10 { gap: 10px; }
 .w-100 { width: 100%; }
+
+/* Añadir al final del archivo styles.css */
+
+/* Estilos para la pestaña de sincronización */
+.sync-info {
+    padding: 20px;
+}
+
+.sync-actions {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.sync-actions .btn {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Estilos para vista previa de embed en modal */
+#modal-recipe-content .embed-preview {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    background: white;
+}
+
+/* Botón de embed en tarjetas */
+.btn-success {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .sync-actions {
+        flex-direction: column;
+    }
+    
+    .sync-actions .btn {
+        width: 100%;
+    }
+    
+    .recipe-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .recipe-actions .btn {
+        width: 100%;
+    }
+}
