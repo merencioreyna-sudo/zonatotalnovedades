@@ -324,7 +324,6 @@
                     <button class="btn btn-small" id="logout-btn">Cerrar Sesión</button>
                 </div>
                 
-                <!-- En el panel de administración, eliminar la tab de Embed y modificar la de Agregar Noticia -->
                 <div class="admin-tabs">
                     <button class="tab-btn active" data-tab="news-tab">Noticias</button>
                     <button class="tab-btn" data-tab="add-news-tab">Agregar Noticia</button>
@@ -340,7 +339,7 @@
                     </div>
                 </div>
                 
-                <!-- Modificar la tab de Agregar Noticia para incluir el campo de código embed -->
+                <!-- Add News Tab -->
                 <div class="tab-content" id="add-news-tab">
                     <h4>Agregar Nueva Noticia</h4>
                     <form id="add-recipe-form">
@@ -406,11 +405,10 @@
                             <textarea id="new-recipe-instructions" rows="2" required placeholder="URL de la fuente original o nombre del medio"></textarea>
                         </div>
                         
-                        <!-- NUEVO CAMPO PARA CÓDIGO EMBED -->
                         <div class="form-group">
                             <label for="new-recipe-embed">Código Embed (Opcional)</label>
-                            <textarea id="new-recipe-embed" rows="4" placeholder="Pega aquí el código embed si tienes uno..."></textarea>
-                            <span class="form-hint">Si tienes código embed para esta noticia, pégalo aquí. No es obligatorio.</span>
+                            <textarea id="new-recipe-embed" rows="4" placeholder="Pega aquí el código embed de la noticia..."></textarea>
+                            <span class="form-hint">Si la noticia tiene código embed para incrustar (iframe, script, etc.), pégalo aquí</span>
                         </div>
                         
                         <div class="form-actions">
@@ -421,7 +419,94 @@
                     
                     <div id="form-status" style="margin-top: 20px;"></div>
                 </div>
-
+                
+                <!-- Edit News Tab -->
+                <div class="tab-content" id="edit-news-tab">
+                    <h4>Editar Noticia Existente</h4>
+                    <div class="form-group">
+                        <label for="edit-recipe-select">Seleccionar Noticia para Editar</label>
+                        <select id="edit-recipe-select" class="edit-select">
+                            <option value="">Selecciona una noticia...</option>
+                        </select>
+                    </div>
+                    
+                    <form id="edit-recipe-form" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="edit-recipe-title">Título de la Noticia *</label>
+                                <input type="text" id="edit-recipe-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recipe-category">Categoría *</label>
+                                <select id="edit-recipe-category" required>
+                                    <option value="">Seleccionar categoría</option>
+                                    <option value="Nacional">Nacional</option>
+                                    <option value="Internacional">Internacional</option>
+                                    <option value="Economía">Economía</option>
+                                    <option value="Tecnología">Tecnología</option>
+                                    <option value="Deportes">Deportes</option>
+                                    <option value="Cultura">Cultura</option>
+                                    <option value="Celebridades">Celebridades</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="edit-recipe-image">URL de la Imagen *</label>
+                                <input type="text" id="edit-recipe-image" required>
+                                <span class="form-hint">Puedes cambiar la imagen actualizando esta URL</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recipe-country">País *</label>
+                                <input type="text" id="edit-recipe-country" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="edit-recipe-date">Fecha *</label>
+                                <input type="date" id="edit-recipe-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recipe-priority">Prioridad *</label>
+                                <select id="edit-recipe-priority" required>
+                                    <option value="Alta">Alta</option>
+                                    <option value="Media">Media</option>
+                                    <option value="Baja">Baja</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-recipe-description">Descripción Corta *</label>
+                            <textarea id="edit-recipe-description" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-recipe-ingredients">Contenido Completo *</label>
+                            <textarea id="edit-recipe-ingredients" rows="8" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-recipe-instructions">Fuente *</label>
+                            <textarea id="edit-recipe-instructions" rows="2" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-recipe-embed">Código Embed (Opcional)</label>
+                            <textarea id="edit-recipe-embed" rows="4" placeholder="Código embed para incrustar la noticia..."></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                            <button type="button" class="btn btn-danger" id="delete-recipe-btn">Eliminar Noticia</button>
+                            <button type="button" class="btn btn-secondary" id="cancel-edit-btn">Cancelar</button>
+                        </div>
+                    </form>
+                    
+                    <div id="edit-form-status" style="margin-top: 20px;"></div>
+                </div>
                 
                 <!-- Settings Tab -->
                 <div class="tab-content" id="settings-tab">
