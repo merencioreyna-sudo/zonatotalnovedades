@@ -182,6 +182,22 @@ function initializeEmptyNews() {
     // Ocultar estados de carga
     document.getElementById('loading-recipes').style.display = 'none';
     document.getElementById('error-recipes').style.display = 'none';
+    
+    // Mostrar mensaje profesional cuando no hay noticias
+    const newsGrid = document.getElementById('recipes-grid');
+    if (newsGrid && news.length === 0) {
+        newsGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
+                <i class="fas fa-newspaper" style="font-size: 4rem; color: #6c757d; margin-bottom: 20px; opacity: 0.5;"></i>
+                <h3 style="color: var(--text-dark); margin-bottom: 15px; font-weight: 400;">
+                    Sin noticias disponibles
+                </h3>
+                <p style="color: var(--text-gray); margin-bottom: 25px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    No hay noticias cargadas en este momento. Vuelve pronto para ver las últimas actualizaciones.
+                </p>
+            </div>
+        `;
+    }
 }
 
 // =============== CARGAR NOTICIAS DESDE GOOGLE SHEETS ===============
@@ -355,27 +371,24 @@ function renderNews() {
     
     // Si no hay noticias después de filtrar
     if (filteredNews.length === 0) {
+        // Mensaje más profesional sin instrucciones para el usuario
         const message = news.length === 0 ? 
-            'No hay noticias cargadas aún. Usa el panel de administración para agregar tu primera noticia.' :
+            'No hay noticias disponibles en este momento. Vuelve pronto para ver las últimas actualizaciones.' :
             (searchQuery ? 
-                'No se encontraron noticias con esos términos de búsqueda. Prueba con otras palabras.' :
+                'No se encontraron noticias con esos términos de búsqueda.' :
                 'No hay noticias en esta categoría.');
         
         newsGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; background-color: rgba(0, 0, 0, 0.05); border-radius: 8px;">
                 <i class="fas fa-newspaper" style="font-size: 4rem; color: #6c757d; margin-bottom: 20px; opacity: 0.5;"></i>
                 <h3 style="color: var(--text-dark); margin-bottom: 15px; font-weight: 400;">
-                    ${news.length === 0 ? '¡Bienvenido a Zona Total Novedades!' : 'No se encontraron noticias'}
+                    ${searchQuery ? 'Búsqueda sin resultados' : 'Sin noticias disponibles'}
                 </h3>
                 <p style="color: var(--text-gray); margin-bottom: 25px; max-width: 600px; margin-left: auto; margin-right: auto;">
                     ${message}
                 </p>
                 ${searchQuery ? 
                     '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 5px;">Limpiar búsqueda</button>' : 
-                    ''
-                }
-                ${news.length === 0 ? 
-                    '<button onclick="loadNewsFromGoogleSheets()" class="btn btn-secondary" style="margin: 5px;">Cargar desde Google Sheets</button>' : 
                     ''
                 }
             </div>
@@ -592,6 +605,34 @@ function openNewsModal(newsId) {
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     console.log('Modal abierto correctamente');
+
+    let embedSection = '';
+    if (item.embedCode && item.embedCode.trim() !== '') {
+        embedSection = `
+            <div style="margin-top: 30px;">
+                <h4 style="color: #E6C158; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #E6C158;">
+                    <i class="fas fa-code"></i> Contenido Incrustado
+                </h4>
+                <div style="background-color: #333; padding: 20px; border-radius: 5px; border: 1px solid #444; overflow: auto;">
+                    ${item.embedCode}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Agregar embedSection al content.innerHTML
+    content.innerHTML = `
+        <!-- ... contenido existente ... -->
+        
+        ${embedSection}
+        
+        <!-- ... resto del contenido ... -->
+    `;
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    console.log('Modal abierto correctamente');
+}
 }
 
 function closeModal() {
@@ -603,22 +644,7 @@ function closeModal() {
 }
 
 // =============== SISTEMA EMBED ===============
-function setupEmbed() {
-    console.log('🔧 Configurando sistema embed...');
-    
-    // Selector de tamaño en admin
-    const embedSizeSelect = document.getElementById('admin-embed-size');
-    if (embedSizeSelect) {
-        embedSizeSelect.addEventListener('change', function() {
-            const customSizeContainer = document.getElementById('admin-custom-size-container');
-            if (this.value === 'custom') {
-                customSizeContainer.style.display = 'block';
-            } else {
-                customSizeContainer.style.display = 'none';
-            }
-            updateAdminEmbedPreview();
-        });
-    }
+
     
     // Selector de tema en admin
     const embedThemeSelect = document.getElementById('admin-embed-theme');
@@ -935,105 +961,102 @@ function setupAdmin() {
     
     // 6. Tabs del admin
     const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            
-            // Remover active de todos
-            tabBtns.forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            // Agregar active al seleccionado
-            this.classList.add('active');
-            const tabElement = document.getElementById(tabId);
-            if (tabElement) tabElement.classList.add('active');
-            
-            // Si es la tab de noticias, cargarlas
-            if (tabId === 'news-tab') {
-                loadAdminNews();
-            }
-            // Si es la tab de editar, cargar selector
-            if (tabId === 'edit-news-tab') {
-                loadEditSelector();
-            }
-            // Si es la tab de embed, actualizar vista previa
-            if (tabId === 'embed-tab') {
-                updateEmbedSelector();
-                updateAdminEmbedPreview();
-            }
-            // Si es la tab de configuración, cargar vista previa del logo
-            if (tabId === 'settings-tab') {
-                updateLogoPreview();
-            }
-        });
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+        const tabId = this.getAttribute('data-tab');
+        
+        // Remover active de todos
+        tabBtns.forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Agregar active al seleccionado
+        this.classList.add('active');
+        const tabElement = document.getElementById(tabId);
+        if (tabElement) tabElement.classList.add('active');
+        
+        // Si es la tab de noticias, cargarlas
+        if (tabId === 'news-tab') {
+            loadAdminNews();
+        }
+        // Si es la tab de editar, cargar selector
+        if (tabId === 'edit-news-tab') {
+            loadEditSelector();
+        }
+        // NOTA: La tab de embed ya no existe, así que eliminamos esa condición
+        // Si es la tab de configuración, cargar vista previa del logo
+        if (tabId === 'settings-tab') {
+            updateLogoPreview();
+        }
     });
+});
     
     // 7. Formulario agregar noticia
     const addNewsForm = document.getElementById('add-recipe-form');
-    if (addNewsForm) {
-        addNewsForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Validar campos
-            const title = document.getElementById('new-recipe-title').value;
-            const description = document.getElementById('new-recipe-description').value;
-            const category = document.getElementById('new-recipe-category').value;
-            const country = document.getElementById('new-recipe-country').value;
-            const date = document.getElementById('new-recipe-date').value;
-            const priority = document.getElementById('new-recipe-priority').value;
-            const image = document.getElementById('new-recipe-image').value;
-            const content = document.getElementById('new-recipe-ingredients').value;
-            const source = document.getElementById('new-recipe-instructions').value;
-            
-            if (!title || !description || !category || !country || !date || !image || !content || !source) {
-                showFormStatus('Por favor, completa todos los campos obligatorios (*)', 'error');
-                return;
-            }
-            
-            // Crear nueva noticia con ID único
-            const newId = news.length > 0 ? Math.max(...news.map(n => n.id)) + 1 : 1;
-            const newNews = {
-                id: newId,
-                title: title,
-                description: description,
-                category: category,
-                country: country,
-                date: date,
-                priority: priority,
-                image: fixImageUrl(image),
-                content: content,
-                source: source
-            };
-            
-            // Agregar a la lista
-            news.unshift(newNews); // Agregar al principio
-            
-            // Guardar en localStorage
-            saveNewsToLocalStorage();
-            
-            // Actualizar interfaz
-            updateNewsCounts();
-            updateTotalNews();
-            renderNews();
-            updateEmbedSelector();
-            
-            // Mostrar éxito
-            showFormStatus('✅ Noticia agregada correctamente. Los cambios se guardaron localmente.', 'success');
-            
-            // Limpiar formulario
-            addNewsForm.reset();
-            
-            // Establecer fecha actual
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('new-recipe-date').value = today;
-            
-            // Actualizar lista admin
-            loadAdminNews();
-            loadEditSelector();
-            
-            console.log('📰 Nueva noticia agregada:', newNews);
-        });
-    }
+if (addNewsForm) {
+    addNewsForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validar campos
+        const title = document.getElementById('new-recipe-title').value;
+        const description = document.getElementById('new-recipe-description').value;
+        const category = document.getElementById('new-recipe-category').value;
+        const country = document.getElementById('new-recipe-country').value;
+        const date = document.getElementById('new-recipe-date').value;
+        const priority = document.getElementById('new-recipe-priority').value;
+        const image = document.getElementById('new-recipe-image').value;
+        const content = document.getElementById('new-recipe-ingredients').value;
+        const source = document.getElementById('new-recipe-instructions').value;
+        const embedCode = document.getElementById('new-recipe-embed').value; // Nuevo campo
+        
+        if (!title || !description || !category || !country || !date || !image || !content || !source) {
+            showFormStatus('Por favor, completa todos los campos obligatorios (*)', 'error');
+            return;
+        }
+        
+        // Crear nueva noticia con ID único
+        const newId = news.length > 0 ? Math.max(...news.map(n => n.id)) + 1 : 1;
+        const newNews = {
+            id: newId,
+            title: title,
+            description: description,
+            category: category,
+            country: country,
+            date: date,
+            priority: priority,
+            image: fixImageUrl(image),
+            content: content,
+            source: source,
+            embedCode: embedCode // Agregar código embed al objeto
+        };
+        
+        // Agregar a la lista
+        news.unshift(newNews); // Agregar al principio
+        
+        // Guardar en localStorage
+        saveNewsToLocalStorage();
+        
+        // Actualizar interfaz
+        updateNewsCounts();
+        updateTotalNews();
+        renderNews();
+        
+        // Mostrar éxito
+        showFormStatus('✅ Noticia agregada correctamente. Los cambios se guardaron localmente.', 'success');
+        
+        // Limpiar formulario
+        addNewsForm.reset();
+        
+        // Establecer fecha actual
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('new-recipe-date').value = today;
+        
+        // Actualizar lista admin
+        loadAdminNews();
+        loadEditSelector();
+        
+        console.log('📰 Nueva noticia agregada:', newNews);
+    });
+}
     
     // 8. Formulario editar noticia
     const editNewsForm = document.getElementById('edit-recipe-form');
