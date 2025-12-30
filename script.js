@@ -1,9 +1,4 @@
 // =============== CONFIGURACIÓN ===============
-// Google Sheets como base de datos compartida
-const GOOGLE_SHEETS_ID = '1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ';
-const SHEET_GID = '1201005628';
-const GOOGLE_SHEETS_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=${SHEET_GID}`;
-
 // Variables globales
 let news = [];
 let currentCategory = "todos";
@@ -20,13 +15,11 @@ let siteSettings = {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Zona Total Novedades - Iniciando...');
     
-    // Inicializar estados
-    setTimeout(() => {
-        const errorElement = document.getElementById('error-recipes');
-        const loadingElement = document.getElementById('loading-recipes');
-        if (errorElement) errorElement.style.display = 'none';
-        if (loadingElement) loadingElement.style.display = 'none';
-    }, 100);
+    // Cargar noticias desde localStorage
+    loadNewsFromLocalStorage();
+    
+    // Cargar configuración del sitio
+    loadSiteSettings();
     
     // Menú móvil
     const hamburger = document.querySelector('.hamburger');
@@ -92,6 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
+            // Scroll suave a noticias
+            document.getElementById('news').scrollIntoView({ behavior: 'smooth' });
             renderNews();
         });
     });
@@ -100,18 +95,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const retryBtn = document.getElementById('retry-load-btn');
     if (retryBtn) {
         retryBtn.addEventListener('click', () => {
-            loadNewsFromGoogleSheets();
+            // Ya no cargamos de Google Sheets
+            renderNews();
         });
     }
     
     // Configurar Admin
     setupAdmin();
     
-    // Cargar configuración del sitio
-    loadSiteSettings();
+    // Renderizar noticias iniciales
+    renderNews();
     
-    // Inicializar noticias vacías
-    initializeEmptyNews();
+    // Establecer fecha actual en formulario de agregar
+    setTimeout(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('new-recipe-date');
+        if (dateInput) dateInput.value = today;
+    }, 100);
 });
 
 // =============== CONFIGURACIÓN DEL SITIO ===============
@@ -142,12 +142,21 @@ function saveSiteSettings() {
 function applySiteSettings() {
     // Aplicar logo
     const siteLogo = document.getElementById('site-logo');
-    if (siteLogo && siteSettings.logoUrl) {
-        siteLogo.innerHTML = `
-            <img src="${siteSettings.logoUrl}" alt="${siteSettings.siteTitle}" 
-                 style="max-height: 40px; max-width: 150px; object-fit: contain;">
-            <span class="logo-text">${siteSettings.siteTitle}</span>
-        `;
+    if (siteLogo) {
+        if (siteSettings.logoUrl && siteSettings.logoUrl.trim() !== '') {
+            siteLogo.innerHTML = `
+                <img src="${siteSettings.logoUrl}" alt="${siteSettings.siteTitle}" 
+                     style="max-height: 40px; max-width: 150px; object-fit: contain;">
+                <span class="logo-text">${siteSettings.siteTitle}</span>
+            `;
+        } else {
+            siteLogo.innerHTML = `
+                <div class="logo-icon">
+                    <i class="fas fa-newspaper"></i>
+                </div>
+                <span class="logo-text">${siteSettings.siteTitle}</span>
+            `;
+        }
     }
     
     // Aplicar título del sitio en la página
@@ -171,150 +180,15 @@ function applySiteSettings() {
     }
 }
 
-// =============== INICIALIZAR NOTICIAS VACÍAS ===============
-function initializeEmptyNews() {
-    console.log('Inicializando noticias vacías...');
-    news = []; // Vaciar el array de noticias
-    updateNewsCounts();
-    updateTotalNews();
-    renderNews();
-    
-    // Ocultar estados de carga
-    document.getElementById('loading-recipes').style.display = 'none';
-    document.getElementById('error-recipes').style.display = 'none';
-    
-    // Mostrar mensaje profesional cuando no hay noticias
-    const newsGrid = document.getElementById('recipes-grid');
-    if (newsGrid && news.length === 0) {
-        newsGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
-                <i class="fas fa-newspaper" style="font-size: 4rem; color: #6c757d; margin-bottom: 20px; opacity: 0.5;"></i>
-                <h3 style="color: var(--text-dark); margin-bottom: 15px; font-weight: 400;">
-                    Sin noticias disponibles
-                </h3>
-                <p style="color: var(--text-gray); margin-bottom: 25px; max-width: 600px; margin-left: auto; margin-right: auto;">
-                    No hay noticias cargadas en este momento. Vuelve pronto para ver las últimas actualizaciones.
-                </p>
-            </div>
-        `;
-    }
-}
-
-// =============== CARGAR NOTICIAS DESDE GOOGLE SHEETS ===============
-async function loadNewsFromGoogleSheets() {
-    try {
-        console.log('📥 Cargando noticias desde Google Sheets...');
-        document.getElementById('loading-recipes').style.display = 'flex';
-        document.getElementById('error-recipes').style.display = 'none';
-        
-        const response = await fetch(GOOGLE_SHEETS_URL);
-        const csvText = await response.text();
-        
-        const lines = csvText.split('\n');
-        news = [];
-        
-        // Empezar desde la línea 1 (saltar encabezados)
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line || line === ',') continue;
-            
-            const values = parseCSVLine(line);
-            
-            if (values.length >= 10) {
-                const newsItem = {
-                    id: i,
-                    title: values[1]?.trim() || 'Noticia sin título',
-                    description: values[2]?.trim() || 'Sin descripción',
-                    category: values[3]?.trim() || 'Nacional',
-                    country: values[4]?.trim() || 'No especificado',
-                    date: values[5]?.trim() || new Date().toLocaleDateString(),
-                    priority: values[6]?.trim() || 'Media',
-                    image: fixImageUrl(values[7]?.trim()),
-                    content: values[8]?.trim() || 'Sin contenido',
-                    source: values[9]?.trim() || 'Fuente no disponible'
-                };
-                
-                if (newsItem.title !== 'Noticia sin título' && newsItem.title !== '') {
-                    news.push(newsItem);
-                    console.log(`✅ Noticia cargada: "${newsItem.title}"`);
-                }
-            }
-        }
-        
-        console.log(`✅ Total: ${news.length} noticias cargadas desde Google Sheets`);
-        
-        // Actualizar interfaz
-        updateNewsCounts();
-        updateTotalNews();
-        renderNews();
-        
-        // Actualizar selectores en el admin
-        updateEmbedSelector();
-        
-        // Ocultar estados
-        document.getElementById('loading-recipes').style.display = 'none';
-        
-    } catch (error) {
-        console.log('❌ Error cargando noticias desde Google Sheets:', error);
-        document.getElementById('loading-recipes').style.display = 'none';
-        document.getElementById('error-recipes').style.display = 'flex';
-        document.getElementById('error-message').textContent = 'Error al conectar con la base de datos.';
-    }
-}
-
-function parseCSVLine(line) {
-    const values = [];
-    let current = '';
-    let insideQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        
-        if (char === '"') {
-            insideQuotes = !insideQuotes;
-        } else if (char === ',' && !insideQuotes) {
-            values.push(current.trim());
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-    
-    values.push(current.trim());
-    return values;
-}
-
-function fixImageUrl(url) {
-    if (!url || url.trim() === '') {
-        return 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80';
-    }
-    
-    let fixedUrl = url.trim();
-    
-    // Si es Unsplash, agregar parámetros
-    if (fixedUrl.includes('unsplash.com') && !fixedUrl.includes('?')) {
-        fixedUrl += '?w=800&auto=format&fit=crop&q=80';
-    }
-    
-    // Si es Imgur sin extensión, agregar .jpg
-    if (fixedUrl.includes('imgur.com') && !fixedUrl.includes('.jpg') && !fixedUrl.includes('.png')) {
-        const parts = fixedUrl.split('/');
-        const lastPart = parts[parts.length - 1];
-        if (lastPart && lastPart.length > 0) {
-            fixedUrl = `https://i.imgur.com/${lastPart}.jpg`;
-        }
-    }
-    
-    return fixedUrl;
-}
-
-// =============== FUNCIONES DE PERSISTENCIA LOCAL ===============
+// =============== PERSISTENCIA LOCAL ===============
 function saveNewsToLocalStorage() {
     try {
         localStorage.setItem('zona_total_novedades', JSON.stringify(news));
         console.log('💾 Noticias guardadas en localStorage:', news.length);
+        return true;
     } catch (error) {
         console.error('Error guardando en localStorage:', error);
+        return false;
     }
 }
 
@@ -326,8 +200,6 @@ function loadNewsFromLocalStorage() {
             console.log('📂 Noticias cargadas desde localStorage:', news.length);
             updateNewsCounts();
             updateTotalNews();
-            renderNews();
-            updateEmbedSelector();
             return true;
         }
     } catch (error) {
@@ -339,12 +211,19 @@ function loadNewsFromLocalStorage() {
 // =============== RENDERIZAR NOTICIAS ===============
 function renderNews() {
     const newsGrid = document.getElementById('recipes-grid');
+    const loadingElement = document.getElementById('loading-recipes');
+    const errorElement = document.getElementById('error-recipes');
+    
     if (!newsGrid) return;
+    
+    // Ocultar estados
+    if (loadingElement) loadingElement.style.display = 'none';
+    if (errorElement) errorElement.style.display = 'none';
     
     newsGrid.innerHTML = '';
     
     // Filtrar noticias
-    let filteredNews = news;
+    let filteredNews = [...news];
     
     if (currentCategory !== 'todos') {
         filteredNews = news.filter(n => {
@@ -355,7 +234,7 @@ function renderNews() {
     
     if (searchQuery) {
         filteredNews = filteredNews.filter(n => {
-            const searchText = (n.title + ' ' + n.description + ' ' + n.category + ' ' + n.country + ' ' + n.content).toLowerCase();
+            const searchText = (n.title + ' ' + n.description + ' ' + n.category + ' ' + n.country).toLowerCase();
             return searchText.includes(searchQuery);
         });
     }
@@ -369,17 +248,14 @@ function renderNews() {
         return new Date(b.date) - new Date(a.date);
     });
     
-    // Si no hay noticias después de filtrar
+    // Si no hay noticias
     if (filteredNews.length === 0) {
-        // Mensaje más profesional sin instrucciones para el usuario
-        const message = news.length === 0 ? 
-            'No hay noticias disponibles en este momento. Vuelve pronto para ver las últimas actualizaciones.' :
-            (searchQuery ? 
-                'No se encontraron noticias con esos términos de búsqueda.' :
-                'No hay noticias en esta categoría.');
+        const message = searchQuery ? 
+            'No se encontraron noticias con esos términos de búsqueda.' :
+            'No hay noticias disponibles en este momento.';
         
         newsGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; background-color: rgba(0, 0, 0, 0.05); border-radius: 8px;">
+            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
                 <i class="fas fa-newspaper" style="font-size: 4rem; color: #6c757d; margin-bottom: 20px; opacity: 0.5;"></i>
                 <h3 style="color: var(--text-dark); margin-bottom: 15px; font-weight: 400;">
                     ${searchQuery ? 'Búsqueda sin resultados' : 'Sin noticias disponibles'}
@@ -402,17 +278,14 @@ function renderNews() {
         card.className = 'recipe-card';
         
         // Clase de prioridad
-        const priorityClass = item.priority.toLowerCase().replace(/[áéíóú]/g, function(match) {
-            const map = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u'};
-            return map[match];
-        });
+        const priorityClass = item.priority.toLowerCase();
         
         // Formatear fecha
         const formattedDate = formatDate(item.date);
         
         card.innerHTML = `
             <div class="recipe-image">
-                <img src="${item.image}" alt="${item.title}" 
+                <img src="${item.image || 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80'}" alt="${item.title}" 
                      style="width:100%;height:200px;object-fit:cover;border-radius:8px 8px 0 0;">
                 <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.8rem;">
                     ${item.priority}
@@ -514,54 +387,68 @@ function openNewsModal(newsId) {
     const formattedDate = formatDate(item.date);
     
     // Clase de prioridad
-    const priorityClass = item.priority.toLowerCase().replace(/[áéíóú]/g, function(match) {
-        const map = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u'};
-        return map[match];
-    });
+    const priorityClass = item.priority.toLowerCase();
+    
+    // Generar contenido del embed si existe
+    let embedContent = '';
+    if (item.embedCode && item.embedCode.trim() !== '') {
+        embedContent = `
+            <div style="margin: 30px 0;">
+                <h4 style="color: #D4AF37; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #D4AF37;">
+                    <i class="fas fa-code"></i> Contenido Incrustado
+                </h4>
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; overflow: auto;">
+                    ${item.embedCode}
+                </div>
+            </div>
+        `;
+    }
     
     content.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
             <div>
-                <div style="color: #cccccc; font-size: 0.9rem; margin-bottom: 5px;">Categoría</div>
-                <div style="font-weight: 500; color: white;">${item.category}</div>
+                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Categoría</div>
+                <div style="font-weight: 500; color: var(--text-dark);">${item.category}</div>
             </div>
             <div>
-                <div style="color: #cccccc; font-size: 0.9rem; margin-bottom: 5px;">País</div>
-                <div style="font-weight: 500; color: white;">${item.country}</div>
+                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">País</div>
+                <div style="font-weight: 500; color: var(--text-dark);">${item.country}</div>
             </div>
             <div>
-                <div style="color: #cccccc; font-size: 0.9rem; margin-bottom: 5px;">Fecha</div>
-                <div style="font-weight: 500; color: white;">${formattedDate}</div>
+                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Fecha</div>
+                <div style="font-weight: 500; color: var(--text-dark);">${formattedDate}</div>
             </div>
             <div>
-                <div style="color: #cccccc; font-size: 0.9rem; margin-bottom: 5px;">Prioridad</div>
-                <div style="font-weight: 500; color: white;">
+                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Prioridad</div>
+                <div style="font-weight: 500; color: var(--text-dark);">
                     <span class="recipe-difficulty ${priorityClass}">${item.priority}</span>
                 </div>
             </div>
         </div>
         
         <div style="margin: 30px 0; text-align: center;">
-            <img src="${item.image}" alt="${item.title}" 
+            <img src="${item.image || 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80'}" alt="${item.title}" 
                  style="max-width: 100%; max-height: 400px; border-radius: 10px; object-fit: cover; margin-bottom: 20px;">
-            <p style="color: #cccccc; font-size: 0.9rem; font-style: italic;">${item.description}</p>
+            <p style="color: #666; font-size: 1.1rem; font-style: italic; margin-bottom: 20px;">${item.description}</p>
         </div>
         
+        ${embedContent}
+        
         <div style="margin-bottom: 30px;">
-            <h4 style="color: #D4AF37; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #D4AF37;">
+            <h4 style="color: var(--primary-blue); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
                 <i class="fas fa-file-alt"></i> Contenido de la Noticia
             </h4>
-            <div style="background-color: #333; padding: 25px; border-radius: 5px; white-space: pre-line; line-height: 1.8; border: 1px solid #444; font-size: 1.05rem;">
+            <div style="background-color: var(--light-bg); padding: 25px; border-radius: 8px; white-space: pre-line; line-height: 1.8; border: 1px solid var(--border-color); font-size: 1.05rem;">
                 ${item.content}
             </div>
         </div>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 30px;">
             <div>
-                <h4 style="color: #E6C158; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #E6C158;">
+                <h4 style="color: var(--accent-red); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--accent-red);">
                     <i class="fas fa-info-circle"></i> Información Adicional
                 </h4>
-                <div style="background-color: #333; padding: 20px; border-radius: 5px; border: 1px solid #444;">
+                <div style="background-color: var(--light-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <div style="margin-bottom: 10px;">
                         <strong>Fuente:</strong> ${item.source}
                     </div>
@@ -575,11 +462,11 @@ function openNewsModal(newsId) {
             </div>
             
             <div>
-                <h4 style="color: #E6C158; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #E6C158;">
+                <h4 style="color: var(--accent-red); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--accent-red);">
                     <i class="fas fa-share-alt"></i> Compartir
                 </h4>
-                <div style="background-color: #333; padding: 20px; border-radius: 5px; text-align: center; border: 1px solid #444;">
-                    <p style="color: #cccccc; margin-bottom: 15px;">Comparte esta noticia en redes sociales</p>
+                <div style="background-color: var(--light-bg); padding: 20px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
+                    <p style="color: #666; margin-bottom: 15px;">Comparte esta noticia en redes sociales</p>
                     <div style="display: flex; gap: 10px; justify-content: center;">
                         <button class="btn btn-primary" style="padding: 8px 15px;" onclick="shareOnTwitter(${item.id})">
                             <i class="fab fa-twitter"></i> Twitter
@@ -592,11 +479,11 @@ function openNewsModal(newsId) {
             </div>
         </div>
         
-        <div style="margin-top: 30px; padding: 20px; background-color: rgba(212, 175, 55, 0.05); border-radius: 10px; border-left: 4px solid #D4AF37;">
-            <h5 style="color: #D4AF37; margin-bottom: 10px;">
+        <div style="margin-top: 30px; padding: 20px; background-color: rgba(0, 86, 179, 0.05); border-radius: 10px; border-left: 4px solid var(--primary-blue);">
+            <h5 style="color: var(--primary-blue); margin-bottom: 10px;">
                 <i class="fas fa-lightbulb"></i> Nota del Editor
             </h5>
-            <p style="color: #cccccc; font-size: 0.95rem;">
+            <p style="color: #666; font-size: 0.95rem;">
                 Esta noticia ha sido verificada por nuestro equipo editorial. Si tienes alguna información adicional o corrección, por favor contáctanos a través de nuestro correo electrónico.
             </p>
         </div>
@@ -605,34 +492,6 @@ function openNewsModal(newsId) {
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     console.log('Modal abierto correctamente');
-
-    let embedSection = '';
-    if (item.embedCode && item.embedCode.trim() !== '') {
-        embedSection = `
-            <div style="margin-top: 30px;">
-                <h4 style="color: #E6C158; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #E6C158;">
-                    <i class="fas fa-code"></i> Contenido Incrustado
-                </h4>
-                <div style="background-color: #333; padding: 20px; border-radius: 5px; border: 1px solid #444; overflow: auto;">
-                    ${item.embedCode}
-                </div>
-            </div>
-        `;
-    }
-    
-    // Agregar embedSection al content.innerHTML
-    content.innerHTML = `
-        <!-- ... contenido existente ... -->
-        
-        ${embedSection}
-        
-        <!-- ... resto del contenido ... -->
-    `;
-    
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    console.log('Modal abierto correctamente');
-}
 }
 
 function closeModal() {
@@ -640,230 +499,6 @@ function closeModal() {
     if (modal) {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
-    }
-}
-
-// =============== SISTEMA EMBED ===============
-
-    
-    // Selector de tema en admin
-    const embedThemeSelect = document.getElementById('admin-embed-theme');
-    if (embedThemeSelect) {
-        embedThemeSelect.addEventListener('change', updateAdminEmbedPreview);
-    }
-    
-    // Input de ancho personalizado en admin
-    const customWidthInput = document.getElementById('admin-custom-width');
-    if (customWidthInput) {
-        customWidthInput.addEventListener('input', updateAdminEmbedPreview);
-    }
-    
-    // Botón copiar embed en admin
-    const copyEmbedBtn = document.getElementById('admin-copy-embed-btn');
-    if (copyEmbedBtn) {
-        copyEmbedBtn.addEventListener('click', copyAdminEmbedCode);
-    }
-    
-    // Selector de noticias para embed en admin
-    const embedNewsSelect = document.getElementById('admin-embed-news-select');
-    if (embedNewsSelect) {
-        embedNewsSelect.addEventListener('change', updateAdminEmbedPreview);
-    }
-    
-    // Cargar selector de embed en admin
-    updateEmbedSelector();
-}
-
-function updateEmbedSelector() {
-    const select = document.getElementById('admin-embed-news-select');
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">Selecciona una noticia...</option>';
-    
-    news.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item.id;
-        const shortTitle = item.title.length > 50 ? item.title.substring(0, 47) + '...' : item.title;
-        option.textContent = `${shortTitle} (${item.category})`;
-        select.appendChild(option);
-    });
-}
-
-function updateAdminEmbedPreview() {
-    const embedSelect = document.getElementById('admin-embed-news-select');
-    const newsId = parseInt(embedSelect.value);
-    
-    if (!newsId) {
-        // Mostrar placeholder
-        const previewContent = document.getElementById('admin-embed-preview');
-        if (previewContent) {
-            previewContent.innerHTML = `
-                <div class="embed-preview-placeholder">
-                    <i class="fas fa-code"></i>
-                    <p>Selecciona una noticia para ver la vista previa</p>
-                </div>
-            `;
-        }
-        document.getElementById('admin-embed-code').value = '';
-        return;
-    }
-    
-    const item = news.find(n => n.id === newsId);
-    if (!item) return;
-    
-    // Obtener configuraciones
-    const size = document.getElementById('admin-embed-size').value;
-    const theme = document.getElementById('admin-embed-theme').value;
-    let width = 400; // Valor por defecto
-    
-    if (size === 'small') width = 300;
-    else if (size === 'medium') width = 400;
-    else if (size === 'large') width = 500;
-    else if (size === 'custom') {
-        const customWidth = document.getElementById('admin-custom-width').value;
-        width = parseInt(customWidth) || 400;
-    }
-    
-    // Generar HTML para la vista previa
-    const previewHTML = generateEmbedHTML(item, width, theme, true);
-    const previewContent = document.getElementById('admin-embed-preview');
-    if (previewContent) {
-        previewContent.innerHTML = previewHTML;
-    }
-    
-    // Generar código embed
-    const embedCode = generateEmbedCode(item, width, theme);
-    document.getElementById('admin-embed-code').value = embedCode;
-}
-
-function generateEmbedHTML(item, width, theme, isPreview = false) {
-    const formattedDate = formatDate(item.date);
-    const themeClass = theme === 'dark' ? 'embed-dark' : 'embed-light';
-    
-    return `
-        <div class="embed-container ${themeClass}" style="width: ${width}px; max-width: 100%; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; font-family: Arial, sans-serif; margin: 0 auto;">
-            <div class="embed-header" style="background-color: ${theme === 'dark' ? '#0A1428' : '#0056B3'}; color: white; padding: 15px; text-align: center;">
-                <div style="font-weight: bold; font-size: 1.1em;">${siteSettings.siteTitle}</div>
-                <div style="font-size: 0.9em; opacity: 0.9;">Noticia Destacada</div>
-            </div>
-            
-            <div class="embed-image" style="height: 200px; overflow: hidden;">
-                <img src="${item.image}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;">
-            </div>
-            
-            <div class="embed-content" style="padding: 20px; background-color: ${theme === 'dark' ? '#1a1a1a' : '#ffffff'}; color: ${theme === 'dark' ? '#ffffff' : '#333333'};">
-                <h3 style="margin: 0 0 10px 0; font-size: 1.2em; line-height: 1.3;">${item.title}</h3>
-                <p style="margin: 0 0 15px 0; font-size: 0.95em; color: ${theme === 'dark' ? '#cccccc' : '#666666'};">
-                    ${item.description}
-                </p>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; color: ${theme === 'dark' ? '#999999' : '#888888'}; margin-top: 15px; padding-top: 15px; border-top: 1px solid ${theme === 'dark' ? '#333' : '#eee'};">
-                    <div>
-                        <span style="display: inline-block; padding: 3px 8px; background-color: ${theme === 'dark' ? '#0056B3' : '#e6f2ff'}; color: ${theme === 'dark' ? 'white' : '#0056B3'}; border-radius: 3px; margin-right: 10px;">
-                            ${item.category}
-                        </span>
-                        <span>${formattedDate}</span>
-                    </div>
-                    <div>
-                        ${isPreview ? 
-                            `<button style="background-color: ${theme === 'dark' ? '#C41230' : '#C41230'}; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">
-                                Ver más
-                            </button>` : 
-                            `<a href="${window.location.origin}${window.location.pathname}#news" target="_blank" style="background-color: ${theme === 'dark' ? '#C41230' : '#C41230'}; color: white; text-decoration: none; padding: 8px 15px; border-radius: 4px; display: inline-block; font-size: 0.9em;">
-                                Ver más
-                            </a>`
-                        }
-                    </div>
-                </div>
-            </div>
-            
-            <div class="embed-footer" style="background-color: ${theme === 'dark' ? '#0a0a0a' : '#f8f9fa'}; color: ${theme === 'dark' ? '#999' : '#666'}; padding: 10px 20px; text-align: center; font-size: 0.8em; border-top: 1px solid ${theme === 'dark' ? '#333' : '#eee'};">
-                <div>Fuente: ${item.source}</div>
-                <div style="margin-top: 5px;">© ${new Date().getFullYear()} ${siteSettings.siteTitle}</div>
-            </div>
-        </div>
-    `;
-}
-
-function generateEmbedCode(item, width, theme) {
-    const siteUrl = window.location.origin + window.location.pathname;
-    
-    return `<!-- Embed para Zona Total Novedades -->
-<div id="ztn-embed-${item.id}"></div>
-<script>
-    (function() {
-        var embedData = {
-            id: ${item.id},
-            title: "${item.title.replace(/"/g, '\\"')}",
-            description: "${item.description.replace(/"/g, '\\"')}",
-            image: "${item.image}",
-            category: "${item.category}",
-            date: "${item.date}",
-            source: "${item.source.replace(/"/g, '\\"')}",
-            width: ${width},
-            theme: "${theme}"
-        };
-        
-        var embedDiv = document.getElementById('ztn-embed-${item.id}');
-        var embedHTML = '<div style="width:' + embedData.width + 'px; max-width:100%; border:1px solid #ddd; border-radius:8px; overflow:hidden; font-family:Arial,sans-serif; margin:0 auto;">' +
-            '<div style="background-color:' + (embedData.theme === 'dark' ? '#0A1428' : '#0056B3') + '; color:white; padding:15px; text-align:center;">' +
-                '<div style="font-weight:bold; font-size:1.1em;">${siteSettings.siteTitle.replace(/"/g, '\\"')}</div>' +
-                '<div style="font-size:0.9em; opacity:0.9;">Noticia Destacada</div>' +
-            '</div>' +
-            '<div style="height:200px; overflow:hidden;">' +
-                '<img src="${item.image}" alt="${item.title.replace(/"/g, '\\"')}" style="width:100%; height:100%; object-fit:cover;">' +
-            '</div>' +
-            '<div style="padding:20px; background-color:' + (embedData.theme === 'dark' ? '#1a1a1a' : '#ffffff') + '; color:' + (embedData.theme === 'dark' ? '#ffffff' : '#333333') + ';">' +
-                '<h3 style="margin:0 0 10px 0; font-size:1.2em; line-height:1.3;">${item.title.replace(/"/g, '\\"')}</h3>' +
-                '<p style="margin:0 0 15px 0; font-size:0.95em; color:' + (embedData.theme === 'dark' ? '#cccccc' : '#666666') + ';">' +
-                    '${item.description.replace(/"/g, '\\"')}' +
-                '</p>' +
-                '<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85em; color:' + (embedData.theme === 'dark' ? '#999999' : '#888888') + '; margin-top:15px; padding-top:15px; border-top:1px solid ' + (embedData.theme === 'dark' ? '#333' : '#eee') + ';">' +
-                    '<div>' +
-                        '<span style="display:inline-block; padding:3px 8px; background-color:' + (embedData.theme === 'dark' ? '#0056B3' : '#e6f2ff') + '; color:' + (embedData.theme === 'dark' ? 'white' : '#0056B3') + '; border-radius:3px; margin-right:10px;">' +
-                            '${item.category}' +
-                        '</span>' +
-                        '<span>${formatDate(item.date)}</span>' +
-                    '</div>' +
-                    '<div>' +
-                        '<a href="${siteUrl}#news" target="_blank" style="background-color:#C41230; color:white; text-decoration:none; padding:8px 15px; border-radius:4px; display:inline-block; font-size:0.9em;">' +
-                            'Ver más' +
-                        '</a>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
-            '<div style="background-color:' + (embedData.theme === 'dark' ? '#0a0a0a' : '#f8f9fa') + '; color:' + (embedData.theme === 'dark' ? '#999' : '#666') + '; padding:10px 20px; text-align:center; font-size:0.8em; border-top:1px solid ' + (embedData.theme === 'dark' ? '#333' : '#eee') + ';">' +
-                '<div>Fuente: ${item.source.replace(/"/g, '\\"')}</div>' +
-                '<div style="margin-top:5px;">© ${new Date().getFullYear()} ${siteSettings.siteTitle.replace(/"/g, '\\"')}</div>' +
-            '</div>' +
-        '</div>';
-        
-        embedDiv.innerHTML = embedHTML;
-    })();
-</script>
-<!-- Fin del embed -->`;
-}
-
-function copyAdminEmbedCode() {
-    const embedCode = document.getElementById('admin-embed-code');
-    if (!embedCode || !embedCode.value) {
-        alert('No hay código para copiar. Primero selecciona una noticia.');
-        return;
-    }
-    
-    embedCode.select();
-    embedCode.setSelectionRange(0, 99999); // Para móviles
-    
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            alert('¡Código copiado al portapapeles! Ahora puedes pegarlo en tu sitio web.');
-        } else {
-            alert('Error al copiar el código. Intenta seleccionar y copiar manualmente.');
-        }
-    } catch (err) {
-        console.error('Error al copiar:', err);
-        alert('Error al copiar el código. Intenta seleccionar y copiar manualmente.');
     }
 }
 
@@ -887,8 +522,8 @@ function setupAdmin() {
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const username = document.getElementById('admin-username').value;
-            const password = document.getElementById('admin-password').value;
+            const username = document.getElementById('admin-username').value.trim();
+            const password = document.getElementById('admin-password').value.trim();
             
             // Credenciales válidas
             if (username === 'admin' && password === 'admin123') {
@@ -906,6 +541,10 @@ function setupAdmin() {
                 const today = new Date().toISOString().split('T')[0];
                 const dateInput = document.getElementById('new-recipe-date');
                 if (dateInput) dateInput.value = today;
+                
+                // Cargar selector de edición
+                loadEditSelector();
+                
             } else {
                 alert('Credenciales incorrectas. Usuario: admin, Contraseña: admin123');
             }
@@ -929,12 +568,7 @@ function setupAdmin() {
     const cancelLoginBtn = document.getElementById('cancel-login-btn');
     if (cancelLoginBtn) {
         cancelLoginBtn.addEventListener('click', function() {
-            document.getElementById('admin-overlay').style.display = 'none';
-            document.body.style.overflow = 'auto';
-            
-            // Limpiar formulario
-            document.getElementById('admin-username').value = '';
-            document.getElementById('admin-password').value = '';
+            hideAdminPanel();
         });
     }
     
@@ -942,121 +576,109 @@ function setupAdmin() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
-            document.getElementById('admin-login').style.display = 'block';
-            document.getElementById('admin-panel').style.display = 'none';
-            document.getElementById('admin-overlay').style.display = 'none';
-            document.body.style.overflow = 'auto';
-            
-            // Limpiar formulario
-            document.getElementById('admin-username').value = '';
-            document.getElementById('admin-password').value = '';
-            
-            // Ocultar credenciales
-            const loginHint = document.getElementById('login-hint');
-            if (loginHint) loginHint.classList.remove('active');
-            const showCredsBtn = document.getElementById('show-creds-btn');
-            if (showCredsBtn) showCredsBtn.textContent = 'Mostrar Credenciales';
+            hideAdminPanel();
         });
     }
     
     // 6. Tabs del admin
     const tabBtns = document.querySelectorAll('.tab-btn');
-tabBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-        const tabId = this.getAttribute('data-tab');
-        
-        // Remover active de todos
-        tabBtns.forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        // Agregar active al seleccionado
-        this.classList.add('active');
-        const tabElement = document.getElementById(tabId);
-        if (tabElement) tabElement.classList.add('active');
-        
-        // Si es la tab de noticias, cargarlas
-        if (tabId === 'news-tab') {
-            loadAdminNews();
-        }
-        // Si es la tab de editar, cargar selector
-        if (tabId === 'edit-news-tab') {
-            loadEditSelector();
-        }
-        // NOTA: La tab de embed ya no existe, así que eliminamos esa condición
-        // Si es la tab de configuración, cargar vista previa del logo
-        if (tabId === 'settings-tab') {
-            updateLogoPreview();
-        }
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            
+            // Remover active de todos
+            tabBtns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Agregar active al seleccionado
+            this.classList.add('active');
+            const tabElement = document.getElementById(tabId);
+            if (tabElement) tabElement.classList.add('active');
+            
+            // Si es la tab de noticias, cargarlas
+            if (tabId === 'news-tab') {
+                loadAdminNews();
+            }
+            // Si es la tab de editar, cargar selector
+            if (tabId === 'edit-news-tab') {
+                loadEditSelector();
+            }
+            // Si es la tab de configuración, cargar vista previa del logo
+            if (tabId === 'settings-tab') {
+                updateLogoPreview();
+            }
+        });
     });
-});
     
     // 7. Formulario agregar noticia
     const addNewsForm = document.getElementById('add-recipe-form');
-if (addNewsForm) {
-    addNewsForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Validar campos
-        const title = document.getElementById('new-recipe-title').value;
-        const description = document.getElementById('new-recipe-description').value;
-        const category = document.getElementById('new-recipe-category').value;
-        const country = document.getElementById('new-recipe-country').value;
-        const date = document.getElementById('new-recipe-date').value;
-        const priority = document.getElementById('new-recipe-priority').value;
-        const image = document.getElementById('new-recipe-image').value;
-        const content = document.getElementById('new-recipe-ingredients').value;
-        const source = document.getElementById('new-recipe-instructions').value;
-        const embedCode = document.getElementById('new-recipe-embed').value; // Nuevo campo
-        
-        if (!title || !description || !category || !country || !date || !image || !content || !source) {
-            showFormStatus('Por favor, completa todos los campos obligatorios (*)', 'error');
-            return;
-        }
-        
-        // Crear nueva noticia con ID único
-        const newId = news.length > 0 ? Math.max(...news.map(n => n.id)) + 1 : 1;
-        const newNews = {
-            id: newId,
-            title: title,
-            description: description,
-            category: category,
-            country: country,
-            date: date,
-            priority: priority,
-            image: fixImageUrl(image),
-            content: content,
-            source: source,
-            embedCode: embedCode // Agregar código embed al objeto
-        };
-        
-        // Agregar a la lista
-        news.unshift(newNews); // Agregar al principio
-        
-        // Guardar en localStorage
-        saveNewsToLocalStorage();
-        
-        // Actualizar interfaz
-        updateNewsCounts();
-        updateTotalNews();
-        renderNews();
-        
-        // Mostrar éxito
-        showFormStatus('✅ Noticia agregada correctamente. Los cambios se guardaron localmente.', 'success');
-        
-        // Limpiar formulario
-        addNewsForm.reset();
-        
-        // Establecer fecha actual
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('new-recipe-date').value = today;
-        
-        // Actualizar lista admin
-        loadAdminNews();
-        loadEditSelector();
-        
-        console.log('📰 Nueva noticia agregada:', newNews);
-    });
-}
+    if (addNewsForm) {
+        addNewsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validar campos
+            const title = document.getElementById('new-recipe-title').value.trim();
+            const description = document.getElementById('new-recipe-description').value.trim();
+            const category = document.getElementById('new-recipe-category').value;
+            const country = document.getElementById('new-recipe-country').value.trim();
+            const date = document.getElementById('new-recipe-date').value;
+            const priority = document.getElementById('new-recipe-priority').value;
+            const image = document.getElementById('new-recipe-image').value.trim();
+            const content = document.getElementById('new-recipe-ingredients').value.trim();
+            const source = document.getElementById('new-recipe-instructions').value.trim();
+            const embedCode = document.getElementById('new-recipe-embed').value.trim();
+            
+            if (!title || !description || !category || !country || !date || !image || !content || !source) {
+                showFormStatus('Por favor, completa todos los campos obligatorios (*)', 'error');
+                return;
+            }
+            
+            // Crear nueva noticia con ID único
+            const newId = news.length > 0 ? Math.max(...news.map(n => n.id)) + 1 : 1;
+            const newNews = {
+                id: newId,
+                title: title,
+                description: description,
+                category: category,
+                country: country,
+                date: date,
+                priority: priority,
+                image: image,
+                content: content,
+                source: source,
+                embedCode: embedCode
+            };
+            
+            // Agregar a la lista
+            news.unshift(newNews); // Agregar al principio
+            
+            // Guardar en localStorage
+            if (saveNewsToLocalStorage()) {
+                // Actualizar interfaz
+                updateNewsCounts();
+                updateTotalNews();
+                renderNews();
+                
+                // Mostrar éxito
+                showFormStatus('✅ Noticia agregada correctamente. Los cambios se guardaron permanentemente.', 'success');
+                
+                // Limpiar formulario
+                addNewsForm.reset();
+                
+                // Establecer fecha actual
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('new-recipe-date').value = today;
+                
+                // Actualizar lista admin
+                loadAdminNews();
+                loadEditSelector();
+                
+                console.log('📰 Nueva noticia agregada:', newNews);
+            } else {
+                showFormStatus('❌ Error al guardar la noticia. Intenta nuevamente.', 'error');
+            }
+        });
+    }
     
     // 8. Formulario editar noticia
     const editNewsForm = document.getElementById('edit-recipe-form');
@@ -1073,33 +695,35 @@ if (addNewsForm) {
             }
             
             // Actualizar noticia
-            news[newsIndex].title = document.getElementById('edit-recipe-title').value;
-            news[newsIndex].description = document.getElementById('edit-recipe-description').value;
+            news[newsIndex].title = document.getElementById('edit-recipe-title').value.trim();
+            news[newsIndex].description = document.getElementById('edit-recipe-description').value.trim();
             news[newsIndex].category = document.getElementById('edit-recipe-category').value;
-            news[newsIndex].country = document.getElementById('edit-recipe-country').value;
+            news[newsIndex].country = document.getElementById('edit-recipe-country').value.trim();
             news[newsIndex].date = document.getElementById('edit-recipe-date').value;
             news[newsIndex].priority = document.getElementById('edit-recipe-priority').value;
-            news[newsIndex].image = fixImageUrl(document.getElementById('edit-recipe-image').value);
-            news[newsIndex].content = document.getElementById('edit-recipe-ingredients').value;
-            news[newsIndex].source = document.getElementById('edit-recipe-instructions').value;
+            news[newsIndex].image = document.getElementById('edit-recipe-image').value.trim();
+            news[newsIndex].content = document.getElementById('edit-recipe-ingredients').value.trim();
+            news[newsIndex].source = document.getElementById('edit-recipe-instructions').value.trim();
+            news[newsIndex].embedCode = document.getElementById('edit-recipe-embed').value.trim();
             
             // Guardar cambios en localStorage
-            saveNewsToLocalStorage();
-            
-            // Actualizar interfaz
-            updateNewsCounts();
-            updateTotalNews();
-            renderNews();
-            updateEmbedSelector();
-            
-            // Mostrar éxito
-            showEditFormStatus('✅ Noticia actualizada correctamente. Los cambios se guardaron localmente.', 'success');
-            
-            // Actualizar lista admin
-            loadAdminNews();
-            loadEditSelector();
-            
-            console.log('📝 Noticia actualizada:', news[newsIndex]);
+            if (saveNewsToLocalStorage()) {
+                // Actualizar interfaz
+                updateNewsCounts();
+                updateTotalNews();
+                renderNews();
+                
+                // Mostrar éxito
+                showEditFormStatus('✅ Noticia actualizada correctamente. Los cambios se guardaron permanentemente.', 'success');
+                
+                // Actualizar lista admin
+                loadAdminNews();
+                loadEditSelector();
+                
+                console.log('📝 Noticia actualizada:', news[newsIndex]);
+            } else {
+                showEditFormStatus('❌ Error al guardar los cambios. Intenta nuevamente.', 'error');
+            }
         });
     }
     
@@ -1121,25 +745,26 @@ if (addNewsForm) {
                     const deletedNews = news.splice(newsIndex, 1)[0];
                     
                     // Guardar cambios en localStorage
-                    saveNewsToLocalStorage();
-                    
-                    // Actualizar interfaz
-                    updateNewsCounts();
-                    updateTotalNews();
-                    renderNews();
-                    updateEmbedSelector();
-                    
-                    // Limpiar formulario
-                    editNewsForm.reset();
-                    editNewsForm.style.display = 'none';
-                    document.getElementById('edit-recipe-select').value = '';
-                    
-                    // Mostrar éxito
-                    showEditFormStatus(`✅ Noticia "${deletedNews.title}" eliminada correctamente. Los cambios se guardaron localmente.`, 'success');
-                    
-                    // Actualizar lista admin
-                    loadAdminNews();
-                    loadEditSelector();
+                    if (saveNewsToLocalStorage()) {
+                        // Actualizar interfaz
+                        updateNewsCounts();
+                        updateTotalNews();
+                        renderNews();
+                        
+                        // Limpiar formulario
+                        editNewsForm.reset();
+                        editNewsForm.style.display = 'none';
+                        document.getElementById('edit-recipe-select').value = '';
+                        
+                        // Mostrar éxito
+                        showEditFormStatus(`✅ Noticia "${deletedNews.title}" eliminada correctamente.`, 'success');
+                        
+                        // Actualizar lista admin
+                        loadAdminNews();
+                        loadEditSelector();
+                    } else {
+                        showEditFormStatus('❌ Error al eliminar la noticia. Intenta nuevamente.', 'error');
+                    }
                 }
             }
         });
@@ -1156,7 +781,21 @@ if (addNewsForm) {
         });
     }
     
-    // 11. Configuración del sitio
+    // 11. Selector de edición
+    const editSelect = document.getElementById('edit-recipe-select');
+    if (editSelect) {
+        editSelect.addEventListener('change', function() {
+            const newsId = parseInt(this.value);
+            if (newsId) {
+                loadNewsToEdit(newsId);
+            } else {
+                document.getElementById('edit-recipe-form').style.display = 'none';
+                document.getElementById('edit-form-status').innerHTML = '';
+            }
+        });
+    }
+    
+    // 12. Configuración del sitio
     const saveSettingsBtn = document.getElementById('save-settings-btn');
     if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', saveSettings);
@@ -1175,21 +814,155 @@ if (addNewsForm) {
         logoUrlInput.addEventListener('input', updateLogoPreview);
     }
     
-    // 12. Cerrar admin con Escape
+    // 13. Cerrar admin con Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const adminOverlay = document.getElementById('admin-overlay');
             if (adminOverlay && adminOverlay.style.display === 'flex') {
-                document.getElementById('admin-overlay').style.display = 'none';
-                document.body.style.overflow = 'auto';
+                hideAdminPanel();
             }
         }
     });
     
-    // Configurar sistema embed
-    setupEmbed();
+    // 14. Cerrar admin haciendo clic fuera
+    const adminOverlay = document.getElementById('admin-overlay');
+    if (adminOverlay) {
+        adminOverlay.addEventListener('click', function(e) {
+            if (e.target === adminOverlay) {
+                hideAdminPanel();
+            }
+        });
+    }
     
     console.log('✅ Admin configurado correctamente');
+}
+
+function hideAdminPanel() {
+    document.getElementById('admin-login').style.display = 'block';
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('admin-overlay').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    
+    // Limpiar formularios
+    document.getElementById('admin-username').value = '';
+    document.getElementById('admin-password').value = '';
+    document.getElementById('edit-recipe-form').reset();
+    document.getElementById('edit-recipe-form').style.display = 'none';
+    document.getElementById('edit-recipe-select').value = '';
+    
+    // Ocultar credenciales
+    const loginHint = document.getElementById('login-hint');
+    if (loginHint) loginHint.classList.remove('active');
+    const showCredsBtn = document.getElementById('show-creds-btn');
+    if (showCredsBtn) showCredsBtn.textContent = 'Mostrar Credenciales';
+    
+    // Limpiar mensajes de estado
+    document.getElementById('form-status').innerHTML = '';
+    document.getElementById('edit-form-status').innerHTML = '';
+    document.getElementById('settings-status').innerHTML = '';
+}
+
+function showAdminPanel() {
+    console.log('👤 Mostrando panel admin');
+    document.getElementById('admin-overlay').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Mostrar credenciales automáticamente
+    const loginHint = document.getElementById('login-hint');
+    if (loginHint) loginHint.classList.add('active');
+}
+
+function loadAdminNews() {
+    console.log('📋 Cargando noticias en panel admin...');
+    const adminNewsList = document.getElementById('admin-recipes-list');
+    
+    if (!adminNewsList) return;
+    
+    if (news.length === 0) {
+        adminNewsList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: var(--text-gray);">
+                <i class="fas fa-newspaper" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
+                <p>No hay noticias cargadas.</p>
+                <p style="font-size: 0.9rem; margin-top: 10px;">Usa el formulario "Agregar Noticia" para comenzar.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    news.forEach(item => {
+        const formattedDate = formatDate(item.date);
+        html += `
+            <div class="admin-recipe-item">
+                <div class="admin-recipe-header">
+                    <div class="admin-recipe-title">${item.title}</div>
+                    <div class="admin-recipe-actions">
+                        <button class="action-btn edit" onclick="loadNewsToEdit(${item.id})">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                    </div>
+                </div>
+                <div class="admin-recipe-details">
+                    <div><strong>Categoría:</strong> ${item.category}</div>
+                    <div><strong>País:</strong> ${item.country}</div>
+                    <div><strong>Fecha:</strong> ${formattedDate}</div>
+                    <div><strong>Prioridad:</strong> ${item.priority}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    adminNewsList.innerHTML = html;
+    console.log(`✅ ${news.length} noticias cargadas en admin`);
+}
+
+function loadEditSelector() {
+    const select = document.getElementById('edit-recipe-select');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Seleccionar noticia...</option>';
+    
+    if (news.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No hay noticias disponibles';
+        select.appendChild(option);
+        return;
+    }
+    
+    news.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        const shortTitle = item.title.length > 50 ? item.title.substring(0, 47) + '...' : item.title;
+        option.textContent = `${shortTitle} (${item.category} - ${formatDate(item.date)})`;
+        select.appendChild(option);
+    });
+}
+
+function loadNewsToEdit(newsId) {
+    const item = news.find(n => n.id === newsId);
+    if (!item) {
+        showEditFormStatus('Noticia no encontrada', 'error');
+        return;
+    }
+    
+    // Cargar datos en formulario
+    document.getElementById('edit-recipe-title').value = item.title;
+    document.getElementById('edit-recipe-description').value = item.description;
+    document.getElementById('edit-recipe-category').value = item.category;
+    document.getElementById('edit-recipe-country').value = item.country;
+    document.getElementById('edit-recipe-date').value = item.date;
+    document.getElementById('edit-recipe-priority').value = item.priority;
+    document.getElementById('edit-recipe-image').value = item.image;
+    document.getElementById('edit-recipe-ingredients').value = item.content;
+    document.getElementById('edit-recipe-instructions').value = item.source;
+    document.getElementById('edit-recipe-embed').value = item.embedCode || '';
+    
+    // Mostrar formulario
+    document.getElementById('edit-recipe-form').style.display = 'block';
+    
+    // Limpiar mensajes de estado
+    document.getElementById('edit-form-status').innerHTML = '';
 }
 
 function loadSettingsForm() {
@@ -1204,7 +977,7 @@ function loadSettingsForm() {
 }
 
 function updateLogoPreview() {
-    const logoUrl = document.getElementById('site-logo-url').value;
+    const logoUrl = document.getElementById('site-logo-url').value.trim();
     const logoPreview = document.getElementById('logo-preview');
     
     if (!logoPreview) return;
@@ -1212,8 +985,8 @@ function updateLogoPreview() {
     if (logoUrl) {
         logoPreview.innerHTML = `
             <img src="${logoUrl}" alt="Logo preview" 
-                 style="max-height: 60px; max-width: 200px; object-fit: contain;">
-            <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                 style="max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 10px;">
+            <div style="font-size: 0.9em; color: #666;">
                 Vista previa del logo
             </div>
         `;
@@ -1256,104 +1029,6 @@ function saveSettings() {
     } else {
         showSettingsStatus('Error al guardar la configuración', 'error');
     }
-}
-
-function showAdminPanel() {
-    console.log('👤 Mostrando panel admin');
-    document.getElementById('admin-overlay').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    
-    // Mostrar credenciales automáticamente
-    const loginHint = document.getElementById('login-hint');
-    if (loginHint) loginHint.classList.add('active');
-}
-
-function loadAdminNews() {
-    console.log('📋 Cargando noticias en panel admin...');
-    const adminNewsList = document.getElementById('admin-recipes-list');
-    
-    if (!adminNewsList) return;
-    
-    if (news.length === 0) {
-        adminNewsList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #cccccc;">
-                <i class="fas fa-newspaper" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
-                <p>No hay noticias cargadas.</p>
-                <p style="font-size: 0.9rem; margin-top: 10px;">Usa el formulario "Agregar Noticia" para comenzar.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '';
-    news.forEach(item => {
-        const formattedDate = formatDate(item.date);
-        html += `
-            <div class="admin-recipe-item">
-                <div class="admin-recipe-header">
-                    <div class="admin-recipe-title">${item.title}</div>
-                    <div class="admin-recipe-actions">
-                        <button class="action-btn edit" onclick="loadNewsToEdit(${item.id})">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                    </div>
-                </div>
-                <div class="admin-recipe-details">
-                    <div><strong>Categoría:</strong> ${item.category}</div>
-                    <div><strong>País:</strong> ${item.country}</div>
-                    <div><strong>Fecha:</strong> ${formattedDate}</div>
-                    <div><strong>Prioridad:</strong> ${item.priority}</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    adminNewsList.innerHTML = html;
-    console.log(`✅ ${news.length} noticias cargadas en admin`);
-}
-
-function loadEditSelector() {
-    const select = document.getElementById('edit-recipe-select');
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">Seleccionar noticia...</option>';
-    
-    news.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item.id;
-        const shortTitle = item.title.length > 50 ? item.title.substring(0, 47) + '...' : item.title;
-        option.textContent = `${shortTitle} (${item.category} - ${formatDate(item.date)})`;
-        select.appendChild(option);
-    });
-    
-    // Event listener para cargar noticia seleccionada
-    select.addEventListener('change', function() {
-        const newsId = parseInt(this.value);
-        if (newsId) {
-            loadNewsToEdit(newsId);
-        } else {
-            document.getElementById('edit-recipe-form').style.display = 'none';
-        }
-    });
-}
-
-function loadNewsToEdit(newsId) {
-    const item = news.find(n => n.id === newsId);
-    if (!item) return;
-    
-    // Cargar datos en formulario
-    document.getElementById('edit-recipe-title').value = item.title;
-    document.getElementById('edit-recipe-description').value = item.description;
-    document.getElementById('edit-recipe-category').value = item.category;
-    document.getElementById('edit-recipe-country').value = item.country;
-    document.getElementById('edit-recipe-date').value = item.date;
-    document.getElementById('edit-recipe-priority').value = item.priority;
-    document.getElementById('edit-recipe-image').value = item.image;
-    document.getElementById('edit-recipe-ingredients').value = item.content;
-    document.getElementById('edit-recipe-instructions').value = item.source;
-    
-    // Mostrar formulario
-    document.getElementById('edit-recipe-form').style.display = 'block';
 }
 
 function showFormStatus(message, type) {
@@ -1436,7 +1111,7 @@ window.shareOnFacebook = function(newsId) {
 // Asegurar que las funciones sean globales
 window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
-window.loadNewsFromGoogleSheets = loadNewsFromGoogleSheets;
 window.loadNewsToEdit = loadNewsToEdit;
 window.clearSearch = clearSearch;
 window.showAdminPanel = showAdminPanel;
+window.hideAdminPanel = hideAdminPanel;
