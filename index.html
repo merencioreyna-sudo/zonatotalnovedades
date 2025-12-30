@@ -324,11 +324,11 @@
                     <button class="btn btn-small" id="logout-btn">Cerrar Sesión</button>
                 </div>
                 
+                <!-- En el panel de administración, eliminar la tab de Embed y modificar la de Agregar Noticia -->
                 <div class="admin-tabs">
                     <button class="tab-btn active" data-tab="news-tab">Noticias</button>
                     <button class="tab-btn" data-tab="add-news-tab">Agregar Noticia</button>
                     <button class="tab-btn" data-tab="edit-news-tab">Editar Noticia</button>
-                    <button class="tab-btn" data-tab="embed-tab">Generar Embed</button>
                     <button class="tab-btn" data-tab="settings-tab">Configuración</button>
                 </div>
                 
@@ -340,7 +340,7 @@
                     </div>
                 </div>
                 
-                <!-- Add News Tab -->
+                <!-- Modificar la tab de Agregar Noticia para incluir el campo de código embed -->
                 <div class="tab-content" id="add-news-tab">
                     <h4>Agregar Nueva Noticia</h4>
                     <form id="add-recipe-form">
@@ -406,6 +406,13 @@
                             <textarea id="new-recipe-instructions" rows="2" required placeholder="URL de la fuente original o nombre del medio"></textarea>
                         </div>
                         
+                        <!-- NUEVO CAMPO PARA CÓDIGO EMBED -->
+                        <div class="form-group">
+                            <label for="new-recipe-embed">Código Embed (Opcional)</label>
+                            <textarea id="new-recipe-embed" rows="4" placeholder="Pega aquí el código embed si tienes uno..."></textarea>
+                            <span class="form-hint">Si tienes código embed para esta noticia, pégalo aquí. No es obligatorio.</span>
+                        </div>
+                        
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Agregar Noticia</button>
                             <button type="reset" class="btn btn-secondary">Limpiar Formulario</button>
@@ -414,158 +421,7 @@
                     
                     <div id="form-status" style="margin-top: 20px;"></div>
                 </div>
-                
-                <!-- Edit News Tab -->
-                <div class="tab-content" id="edit-news-tab">
-                    <h4>Editar Noticia Existente</h4>
-                    <div class="form-group">
-                        <label for="edit-recipe-select">Seleccionar Noticia para Editar</label>
-                        <select id="edit-recipe-select" class="edit-select">
-                            <option value="">Cargando noticias...</option>
-                        </select>
-                    </div>
-                    
-                    <form id="edit-recipe-form" style="display: none;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="edit-recipe-title">Título de la Noticia *</label>
-                                <input type="text" id="edit-recipe-title" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recipe-category">Categoría *</label>
-                                <select id="edit-recipe-category" required>
-                                    <option value="">Seleccionar categoría</option>
-                                    <option value="Nacional">Nacional</option>
-                                    <option value="Internacional">Internacional</option>
-                                    <option value="Economía">Economía</option>
-                                    <option value="Tecnología">Tecnología</option>
-                                    <option value="Deportes">Deportes</option>
-                                    <option value="Cultura">Cultura</option>
-                                    <option value="Celebridades">Celebridades</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="edit-recipe-image">URL de la Imagen *</label>
-                                <input type="text" id="edit-recipe-image" required>
-                                <span class="form-hint">Puedes cambiar la imagen actualizando esta URL</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recipe-country">País *</label>
-                                <input type="text" id="edit-recipe-country" required>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="edit-recipe-date">Fecha *</label>
-                                <input type="date" id="edit-recipe-date" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recipe-priority">Prioridad *</label>
-                                <select id="edit-recipe-priority" required>
-                                    <option value="Alta">Alta</option>
-                                    <option value="Media">Media</option>
-                                    <option value="Baja">Baja</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="edit-recipe-description">Descripción Corta *</label>
-                            <textarea id="edit-recipe-description" rows="3" required></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="edit-recipe-ingredients">Contenido Completo *</label>
-                            <textarea id="edit-recipe-ingredients" rows="8" required></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="edit-recipe-instructions">Fuente *</label>
-                            <textarea id="edit-recipe-instructions" rows="2" required></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                            <button type="button" class="btn btn-danger" id="delete-recipe-btn">Eliminar Noticia</button>
-                            <button type="button" class="btn btn-secondary" id="cancel-edit-btn">Cancelar</button>
-                        </div>
-                    </form>
-                    
-                    <div id="edit-form-status" style="margin-top: 20px;"></div>
-                </div>
-                
-                <!-- Embed Tab -->
-                <div class="tab-content" id="embed-tab">
-                    <h4>Generar Código Embed</h4>
-                    <p class="form-hint" style="margin-bottom: 20px;">Genera código para incrustar noticias en otros sitios web</p>
-                    
-                    <div class="embed-generator">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="admin-embed-news-select">Seleccionar Noticia *</label>
-                                <select id="admin-embed-news-select" class="embed-select" required>
-                                    <option value="">Selecciona una noticia...</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="admin-embed-size">Tamaño del Embed *</label>
-                                <select id="admin-embed-size" class="embed-select" required>
-                                    <option value="small">Pequeño (300px)</option>
-                                    <option value="medium" selected>Mediano (400px)</option>
-                                    <option value="large">Grande (500px)</option>
-                                    <option value="custom">Personalizado</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="admin-embed-theme">Tema *</label>
-                                <select id="admin-embed-theme" class="embed-select" required>
-                                    <option value="light" selected>Claro</option>
-                                    <option value="dark">Oscuro</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="admin-custom-size-container" style="display: none;">
-                                <label for="admin-custom-width">Ancho Personalizado (px) *</label>
-                                <input type="number" id="admin-custom-width" min="200" max="1000" value="400">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="admin-embed-code">Código Embed Generado</label>
-                            <textarea id="admin-embed-code" rows="6" readonly placeholder="Selecciona una noticia y personaliza las opciones para generar el código..."></textarea>
-                            <button class="btn btn-primary" id="admin-copy-embed-btn">
-                                <i class="fas fa-copy"></i> Copiar Código
-                            </button>
-                        </div>
-                        
-                        <div class="embed-preview-container">
-                            <h5>Vista Previa:</h5>
-                            <div id="admin-embed-preview" class="embed-preview">
-                                <div class="embed-preview-placeholder">
-                                    <i class="fas fa-code"></i>
-                                    <p>Selecciona una noticia para ver la vista previa</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="embed-instructions">
-                            <h5><i class="fas fa-info-circle"></i> Instrucciones de Uso:</h5>
-                            <ol>
-                                <li>Selecciona una noticia de la lista</li>
-                                <li>Elige el tamaño y tema del embed</li>
-                                <li>Copia el código generado</li>
-                                <li>Pega el código en cualquier sitio web o blog</li>
-                                <li>La noticia aparecerá incrustada automáticamente</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
+
                 
                 <!-- Settings Tab -->
                 <div class="tab-content" id="settings-tab">
