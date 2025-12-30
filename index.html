@@ -27,7 +27,6 @@
                     <li><a href="#news" class="nav-link">Noticias</a></li>
                     <li><a href="#categories" class="nav-link">Categorías</a></li>
                     <li><a href="#about" class="nav-link">Acerca</a></li>
-                    <li><a href="#embed" class="nav-link">Embed</a></li>
                     <li><a href="#" id="admin-access-btn" class="nav-link admin-access">
                         <i class="fas fa-user-cog"></i> Admin
                     </a></li>
@@ -201,79 +200,6 @@
         </div>
     </section>
 
-    <!-- Embed Section -->
-    <section class="embed-section" id="embed">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Incrusta Nuestras Noticias</h2>
-                <p class="section-subtitle">Comparte nuestras noticias en tu sitio web o blog</p>
-            </div>
-            
-            <div class="embed-content">
-                <div class="embed-preview">
-                    <div id="embed-preview-content">
-                        <!-- Vista previa del embed se cargará aquí -->
-                        <div class="embed-preview-placeholder">
-                            <i class="fas fa-code"></i>
-                            <p>Selecciona una noticia para generar el código embed</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="embed-controls">
-                    <div class="form-group">
-                        <label for="embed-news-select">Seleccionar Noticia</label>
-                        <select id="embed-news-select" class="embed-select">
-                            <option value="">Selecciona una noticia...</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="embed-size">Tamaño del Embed</label>
-                        <select id="embed-size" class="embed-select">
-                            <option value="small">Pequeño (300px)</option>
-                            <option value="medium" selected>Mediano (400px)</option>
-                            <option value="large">Grande (500px)</option>
-                            <option value="custom">Personalizado</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group" id="custom-size-container" style="display: none;">
-                        <label for="custom-width">Ancho Personalizado (px)</label>
-                        <input type="number" id="custom-width" min="200" max="1000" value="400">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="embed-theme">Tema</label>
-                        <select id="embed-theme" class="embed-select">
-                            <option value="light" selected>Claro</option>
-                            <option value="dark">Oscuro</option>
-                            <option value="custom">Personalizado</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="embed-code">Código Embed</label>
-                        <textarea id="embed-code" rows="4" readonly placeholder="El código embed aparecerá aquí..."></textarea>
-                        <button class="btn btn-secondary" id="copy-embed-btn">
-                            <i class="fas fa-copy"></i> Copiar Código
-                        </button>
-                    </div>
-                    
-                    <div class="embed-tips">
-                        <h4><i class="fas fa-lightbulb"></i> Instrucciones:</h4>
-                        <ol>
-                            <li>Selecciona una noticia de la lista</li>
-                            <li>Personaliza el tamaño y tema</li>
-                            <li>Copia el código generado</li>
-                            <li>Pega el código en tu sitio web o blog</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- About Section -->
     <section class="about-section" id="about">
         <div class="container">
@@ -402,6 +328,7 @@
                     <button class="tab-btn active" data-tab="news-tab">Noticias</button>
                     <button class="tab-btn" data-tab="add-news-tab">Agregar Noticia</button>
                     <button class="tab-btn" data-tab="edit-news-tab">Editar Noticia</button>
+                    <button class="tab-btn" data-tab="embed-tab">Generar Embed</button>
                     <button class="tab-btn" data-tab="settings-tab">Configuración</button>
                 </div>
                 
@@ -569,6 +496,75 @@
                     </form>
                     
                     <div id="edit-form-status" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Embed Tab -->
+                <div class="tab-content" id="embed-tab">
+                    <h4>Generar Código Embed</h4>
+                    <p class="form-hint" style="margin-bottom: 20px;">Genera código para incrustar noticias en otros sitios web</p>
+                    
+                    <div class="embed-generator">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="admin-embed-news-select">Seleccionar Noticia *</label>
+                                <select id="admin-embed-news-select" class="embed-select" required>
+                                    <option value="">Selecciona una noticia...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="admin-embed-size">Tamaño del Embed *</label>
+                                <select id="admin-embed-size" class="embed-select" required>
+                                    <option value="small">Pequeño (300px)</option>
+                                    <option value="medium" selected>Mediano (400px)</option>
+                                    <option value="large">Grande (500px)</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="admin-embed-theme">Tema *</label>
+                                <select id="admin-embed-theme" class="embed-select" required>
+                                    <option value="light" selected>Claro</option>
+                                    <option value="dark">Oscuro</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="admin-custom-size-container" style="display: none;">
+                                <label for="admin-custom-width">Ancho Personalizado (px) *</label>
+                                <input type="number" id="admin-custom-width" min="200" max="1000" value="400">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="admin-embed-code">Código Embed Generado</label>
+                            <textarea id="admin-embed-code" rows="6" readonly placeholder="Selecciona una noticia y personaliza las opciones para generar el código..."></textarea>
+                            <button class="btn btn-primary" id="admin-copy-embed-btn">
+                                <i class="fas fa-copy"></i> Copiar Código
+                            </button>
+                        </div>
+                        
+                        <div class="embed-preview-container">
+                            <h5>Vista Previa:</h5>
+                            <div id="admin-embed-preview" class="embed-preview">
+                                <div class="embed-preview-placeholder">
+                                    <i class="fas fa-code"></i>
+                                    <p>Selecciona una noticia para ver la vista previa</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="embed-instructions">
+                            <h5><i class="fas fa-info-circle"></i> Instrucciones de Uso:</h5>
+                            <ol>
+                                <li>Selecciona una noticia de la lista</li>
+                                <li>Elige el tamaño y tema del embed</li>
+                                <li>Copia el código generado</li>
+                                <li>Pega el código en cualquier sitio web o blog</li>
+                                <li>La noticia aparecerá incrustada automáticamente</li>
+                            </ol>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Settings Tab -->
