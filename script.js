@@ -1,5 +1,6 @@
 // =============== CONFIGURACIÓN ===============
-let GOOGLE_SHEETS_ID = '1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ'; // EJEMPLO
+// REEMPLAZA ESTE ID CON EL DE TU GOOGLE SHEETS REAL
+let GOOGLE_SHEETS_ID = '1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ';
 const SHEET_NAME = 'Noticias';
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80';
 
@@ -127,8 +128,10 @@ async function loadNewsFromGoogleSheets() {
         console.log('📥 Cargando noticias desde Google Sheets...');
         
         // Mostrar estado de carga
-        document.getElementById('loading-recipes').style.display = 'flex';
-        document.getElementById('error-recipes').style.display = 'none';
+        const loadingElement = document.getElementById('loading-recipes');
+        const errorElement = document.getElementById('error-recipes');
+        if (loadingElement) loadingElement.style.display = 'flex';
+        if (errorElement) errorElement.style.display = 'none';
         
         // Construir URL de Google Sheets
         const sheetsUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
@@ -143,54 +146,70 @@ async function loadNewsFromGoogleSheets() {
         }
         
         const csvText = await response.text();
+        console.log('CSV recibido (primeros 500 caracteres):', csvText.substring(0, 500));
         
-        // Parsear CSV - SOLO LAS 5 NOTICIAS REALES
-        const rows = csvText.split('\n');
+        // Limpiar array de noticias
         news = [];
         
-        // Solo tomar las primeras 5 filas después del encabezado
-        for (let i = 1; i <= 5 && i < rows.length; i++) {
+        // Parsear CSV - SOLO NOTICIAS REALES
+        const rows = csvText.split('\n');
+        
+        // Contador de noticias reales
+        let realNewsCount = 0;
+        
+        for (let i = 1; i < rows.length; i++) {
             const row = rows[i].trim();
             
-            // Saltar filas vacías
-            if (!row || row === '' || row.replace(/,/g, '').trim() === '') {
+            // Saltar filas completamente vacías
+            if (!row || row === '' || row.replace(/,/g, '').trim() === '' || row === ',,,,,,,,,') {
                 continue;
             }
             
-            // Parsear CSV correctamente
+            // Parsear la fila
             const values = parseCSVRow(row);
             
-            // Verificar que tenga al menos título
-            if (values.length >= 2 && values[0] && values[0].trim() !== '') {
-                const newsItem = {
-                    id: i,
-                    title: (values[0] || '').trim(),
-                    description: (values[1] || '').trim() || 'Sin descripción',
-                    category: (values[2] || '').trim() || 'Nacional',
-                    country: (values[3] || '').trim() || 'No especificado',
-                    date: (values[4] || '').trim() || new Date().toISOString().split('T')[0],
-                    priority: (values[5] || '').trim() || 'Media',
-                    image: fixImageUrl((values[6] || '').trim()),
-                    content: (values[7] || '').trim() || 'Contenido no disponible',
-                    source: (values[8] || '').trim() || 'Fuente no disponible',
-                    embedCode: (values[9] || '').trim() || ''
-                };
+            // Verificar que sea una noticia real (tiene título)
+            if (values.length >= 1 && values[0] && values[0].trim() !== '') {
+                const title = values[0].trim();
                 
-                // Solo agregar si el título no está vacío
-                if (newsItem.title && newsItem.title !== '') {
+                // Solo procesar si el título no es vacío
+                if (title !== '' && title !== 'null' && title !== '""') {
+                    const newsItem = {
+                        id: realNewsCount + 1,
+                        title: title,
+                        description: (values[1] || '').trim() || 'Sin descripción',
+                        category: (values[2] || '').trim() || 'Nacional',
+                        country: (values[3] || '').trim() || 'No especificado',
+                        date: (values[4] || '').trim() || new Date().toISOString().split('T')[0],
+                        priority: (values[5] || '').trim() || 'Media',
+                        image: fixImageUrl((values[6] || '').trim()),
+                        content: (values[7] || '').trim() || 'Contenido no disponible',
+                        source: (values[8] || '').trim() || 'Fuente no disponible',
+                        embedCode: (values[9] || '').trim() || ''
+                    };
+                    
+                    // Agregar a la lista
                     news.push(newsItem);
+                    realNewsCount++;
+                    
+                    console.log(`✅ Noticia ${realNewsCount}: ${newsItem.title.substring(0, 50)}...`);
                 }
+            }
+            
+            // Si ya tenemos 5 noticias reales, salir
+            if (realNewsCount >= 5) {
+                break;
             }
         }
         
-        console.log(`✅ ${news.length} noticias cargadas desde Google Sheets`);
+        console.log(`✅ ${realNewsCount} noticias REALES cargadas desde Google Sheets`);
         
         // Actualizar interfaz
         updateNewsCounts();
         renderNews();
         
         // Ocultar estado de carga
-        document.getElementById('loading-recipes').style.display = 'none';
+        if (loadingElement) loadingElement.style.display = 'none';
         
         // Actualizar estado en admin
         updateSyncStatus(true, news.length);
@@ -202,10 +221,14 @@ async function loadNewsFromGoogleSheets() {
         console.error('❌ Error cargando desde Google Sheets:', error);
         
         // Mostrar error
-        document.getElementById('loading-recipes').style.display = 'none';
-        document.getElementById('error-recipes').style.display = 'flex';
-        document.getElementById('error-message').textContent = 
-            `Error al conectar con Google Sheets: ${error.message}.`;
+        const loadingElement = document.getElementById('loading-recipes');
+        const errorElement = document.getElementById('error-recipes');
+        if (loadingElement) loadingElement.style.display = 'none';
+        if (errorElement) {
+            errorElement.style.display = 'flex';
+            document.getElementById('error-message').textContent = 
+                `Error: ${error.message}. Verifica el ID de Google Sheets.`;
+        }
         
         // Actualizar estado en admin
         updateSyncStatus(false, 0);
@@ -215,7 +238,7 @@ async function loadNewsFromGoogleSheets() {
     }
 }
 
-// Función para parsear filas CSV
+// Función para parsear filas CSV - SIMPLE
 function parseCSVRow(row) {
     const result = [];
     let current = '';
@@ -223,15 +246,9 @@ function parseCSVRow(row) {
     
     for (let i = 0; i < row.length; i++) {
         const char = row[i];
-        const nextChar = row[i + 1];
         
         if (char === '"') {
-            if (inQuotes && nextChar === '"') {
-                current += '"';
-                i++;
-            } else {
-                inQuotes = !inQuotes;
-            }
+            inQuotes = !inQuotes;
         } else if (char === ',' && !inQuotes) {
             result.push(current);
             current = '';
@@ -241,14 +258,7 @@ function parseCSVRow(row) {
     }
     
     result.push(current);
-    return result.map(value => {
-        // Limpiar comillas extras y espacios
-        let cleaned = value.trim();
-        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-            cleaned = cleaned.substring(1, cleaned.length - 1);
-        }
-        return cleaned.replace(/""/g, '"');
-    });
+    return result.map(value => value.trim());
 }
 
 function fixImageUrl(url) {
@@ -256,12 +266,7 @@ function fixImageUrl(url) {
         return DEFAULT_IMAGE;
     }
     
-    let fixedUrl = url.trim();
-    
-    // Limpiar comillas extras
-    fixedUrl = fixedUrl.replace(/^"+|"+$/g, '');
-    
-    return fixedUrl || DEFAULT_IMAGE;
+    return url.trim();
 }
 
 function updateSyncStatus(success, count) {
@@ -286,46 +291,45 @@ function updateSyncStatus(success, count) {
 
 // =============== FUNCIÓN DE EXPORTACIÓN CSV ===============
 function exportAllToCSV() {
-    console.log('🔄 Iniciando exportación a CSV...');
-    console.log('📊 Noticias disponibles para exportar:', news.length);
-    
     if (news.length === 0) {
-        alert('⚠️ No hay noticias para exportar. Agrega noticias primero.');
+        alert('⚠️ No hay noticias para exportar.');
         return;
     }
     
     try {
         // Encabezados
         const headers = ['Título', 'Descripción', 'Categoría', 'País', 'Fecha', 'Prioridad', 'Imagen', 'Contenido', 'Fuente', 'Embed'];
-        
-        // Crear filas comenzando con encabezados
         const rows = [headers];
         
         // Agregar cada noticia
         news.forEach((item) => {
             const row = [
-                `"${(item.title || '').replace(/"/g, '""')}"`,
-                `"${(item.description || '').replace(/"/g, '""')}"`,
-                `"${(item.category || '').replace(/"/g, '""')}"`,
-                `"${(item.country || '').replace(/"/g, '""')}"`,
-                `"${(item.date || '').replace(/"/g, '""')}"`,
-                `"${(item.priority || '').replace(/"/g, '""')}"`,
-                `"${(item.image || '').replace(/"/g, '""')}"`,
-                `"${(item.content || '').replace(/"/g, '""')}"`,
-                `"${(item.source || '').replace(/"/g, '""')}"`,
-                `"${(item.embedCode || '').replace(/"/g, '""')}"`
+                item.title || '',
+                item.description || '',
+                item.category || '',
+                item.country || '',
+                item.date || '',
+                item.priority || '',
+                item.image || '',
+                item.content || '',
+                item.source || '',
+                item.embedCode || ''
             ];
-            
             rows.push(row);
         });
         
         // Convertir a CSV
-        const csvContent = rows.map(row => row.join(',')).join('\n');
-        const BOM = '\uFEFF';
-        const csvWithBOM = BOM + csvContent;
+        const csvContent = rows.map(row => 
+            row.map(cell => {
+                if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+                    return `"${cell.replace(/"/g, '""')}"`;
+                }
+                return cell;
+            }).join(',')
+        ).join('\n');
         
         // Crear y descargar archivo
-        const blob = new Blob([csvWithBOM], { 
+        const blob = new Blob(['\uFEFF' + csvContent], { 
             type: 'text/csv;charset=utf-8;' 
         });
         
@@ -333,16 +337,11 @@ function exportAllToCSV() {
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', `noticias_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.display = 'none';
-        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        // Liberar memoria
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-        
-        alert(`✅ CSV exportado correctamente.\n\nSe descargó el archivo: noticias_${new Date().toISOString().split('T')[0]}.csv`);
+        alert(`✅ CSV exportado correctamente.`);
         
     } catch (error) {
         console.error('❌ Error al exportar CSV:', error);
@@ -350,13 +349,13 @@ function exportAllToCSV() {
     }
 }
 
-// =============== PERSISTENCIA LOCAL (BACKUP) ===============
+// =============== PERSISTENCIA LOCAL ===============
 function loadFromLocalStorage() {
     try {
         const savedNews = localStorage.getItem('zona_total_novedades');
         if (savedNews) {
             const parsedNews = JSON.parse(savedNews);
-            if (Array.isArray(parsedNews) && parsedNews.length > 0) {
+            if (Array.isArray(parsedNews)) {
                 news = parsedNews;
                 console.log('📂 Noticias cargadas desde localStorage:', news.length);
                 updateNewsCounts();
@@ -384,7 +383,6 @@ function saveToLocalStorage() {
 // =============== RENDERIZAR NOTICIAS ===============
 function renderNews() {
     const newsGrid = document.getElementById('recipes-grid');
-    
     if (!newsGrid) return;
     
     newsGrid.innerHTML = '';
@@ -394,45 +392,27 @@ function renderNews() {
     
     if (currentCategory !== 'todos') {
         filteredNews = news.filter(n => {
-            const normalizedCat = normalizeCategory(n.category);
-            return normalizedCat === currentCategory;
+            const cat = normalizeCategory(n.category);
+            return cat === currentCategory;
         });
     }
     
     if (searchQuery) {
         const query = searchQuery.toLowerCase();
         filteredNews = filteredNews.filter(n => {
-            const searchText = (n.title + ' ' + n.description + ' ' + n.category + ' ' + n.country + ' ' + n.source).toLowerCase();
+            const searchText = (n.title + ' ' + n.description + ' ' + n.category).toLowerCase();
             return searchText.includes(query);
         });
     }
     
-    // Ordenar por prioridad y fecha
-    filteredNews.sort((a, b) => {
-        const priorityOrder = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
-        const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-        if (priorityDiff !== 0) return priorityDiff;
-        
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        return dateB - dateA;
-    });
-    
     // Si no hay noticias
     if (filteredNews.length === 0) {
-        const message = searchQuery ? 
-            'No se encontraron noticias con esos términos de búsqueda.' :
-            'No hay noticias disponibles en este momento.';
-        
         newsGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
                 <i class="fas fa-newspaper" style="font-size: 4rem; color: #6c757d; margin-bottom: 20px; opacity: 0.5;"></i>
                 <h3 style="color: var(--text-dark); margin-bottom: 15px; font-weight: 400;">
                     ${searchQuery ? 'Búsqueda sin resultados' : 'Sin noticias disponibles'}
                 </h3>
-                <p style="color: var(--text-gray); margin-bottom: 25px; max-width: 600px; margin-left: auto; margin-right: auto;">
-                    ${message}
-                </p>
                 ${searchQuery ? 
                     '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 5px;">Limpiar búsqueda</button>' : 
                     ''
@@ -453,8 +433,7 @@ function renderNews() {
         card.innerHTML = `
             <div class="recipe-image">
                 <img src="${item.image}" alt="${item.title}" 
-                     onerror="this.src='${DEFAULT_IMAGE}'"
-                     loading="lazy">
+                     onerror="this.src='${DEFAULT_IMAGE}'">
                 <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.8rem;">
                     ${item.priority || 'Media'}
                 </div>
@@ -483,27 +462,17 @@ function renderNews() {
 function normalizeCategory(category) {
     if (!category) return '';
     
-    const normalized = category.toLowerCase()
+    return category.toLowerCase()
         .trim()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    
-    // Mapear variaciones
-    if (normalized.includes('nacional')) return 'nacional';
-    if (normalized.includes('internacional')) return 'internacional';
-    if (normalized.includes('econom')) return 'economia';
-    if (normalized.includes('tecnolog')) return 'tecnologia';
-    if (normalized.includes('deporte')) return 'deportes';
-    if (normalized.includes('cultur')) return 'cultura';
-    if (normalized.includes('celebridad')) return 'celebridades';
-    
-    return normalized;
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, '');
 }
 
 function formatDate(dateString) {
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {
-            return 'Fecha no disponible';
+            return dateString || 'Sin fecha';
         }
         return date.toLocaleDateString('es-ES', {
             day: 'numeric',
@@ -511,65 +480,61 @@ function formatDate(dateString) {
             year: 'numeric'
         });
     } catch (error) {
-        return dateString || 'Fecha no disponible';
+        return dateString || 'Sin fecha';
     }
 }
 
 // =============== ACTUALIZAR CONTADORES - CORREGIDO ===============
 function updateNewsCounts() {
-    console.log('🔄 Actualizando contadores...');
-    console.log('Total noticias REALES:', news.length);
+    console.log('Actualizando contadores con', news.length, 'noticias');
     
-    // Actualizar contador total - SOLO las 5 noticias reales
+    // Actualizar contador total
     const totalElement = document.getElementById('total-news');
     if (totalElement) {
         totalElement.textContent = news.length;
+        console.log('Total noticias:', news.length);
     }
     
-    // Inicializar todos los contadores en 0
-    const categories = {
-        'nacional': 0,
-        'internacional': 0,
-        'economia': 0,
-        'tecnologia': 0,
-        'deportes': 0,
-        'cultura': 0,
-        'celebridades': 0
-    };
+    // Inicializar contadores en 0
+    const categories = ['nacional', 'internacional', 'economia', 'tecnologia', 'deportes', 'cultura', 'celebridades'];
+    const counts = {};
+    categories.forEach(cat => counts[cat] = 0);
     
-    // Contar noticias por categoría - SIMPLE Y DIRECTO
+    // Contar noticias por categoría - SIMPLE
     news.forEach(item => {
         const cat = normalizeCategory(item.category);
-        if (cat in categories) {
-            categories[cat]++;
-        } else if (cat) {
-            // Asignar a la categoría más cercana
-            for (const categoryKey in categories) {
-                if (cat.includes(categoryKey) || categoryKey.includes(cat)) {
-                    categories[categoryKey]++;
-                    break;
-                }
-            }
-        }
+        
+        if (cat.includes('nacional')) counts.nacional++;
+        else if (cat.includes('internacional')) counts.internacional++;
+        else if (cat.includes('econom')) counts.economia++;
+        else if (cat.includes('tecnolog')) counts.tecnologia++;
+        else if (cat.includes('deporte')) counts.deportes++;
+        else if (cat.includes('cultur')) counts.cultura++;
+        else if (cat.includes('celebridad')) counts.celebridades++;
+        else if (cat === 'nacional') counts.nacional++;
+        else if (cat === 'internacional') counts.internacional++;
+        else if (cat === 'economia') counts.economia++;
+        else if (cat === 'tecnologia') counts.tecnologia++;
+        else if (cat === 'deportes') counts.deportes++;
+        else if (cat === 'cultura') counts.cultura++;
+        else if (cat === 'celebridades') counts.celebridades++;
     });
     
     // Actualizar elementos HTML
-    for (const [cat, count] of Object.entries(categories)) {
+    categories.forEach(cat => {
         const element = document.getElementById(`count-${cat}`);
         if (element) {
+            const count = counts[cat] || 0;
             element.textContent = `${count} noticia${count !== 1 ? 's' : ''}`;
-            console.log(`Categoría ${cat}: ${count} noticias`);
+            console.log(`Categoría ${cat}: ${count}`);
         }
-    }
+    });
 }
 
-// =============== MODAL DE NOTICIAS - CORREGIDO PARA MOSTRAR TODO ===============
+// =============== MODAL DE NOTICIAS - MOSTRAR TODO ===============
 function openNewsModal(newsId) {
     const item = news.find(n => n.id === newsId);
-    if (!item) {
-        console.error('Noticia no encontrada:', newsId);
-        return;
-    }
+    if (!item) return;
     
     const modal = document.getElementById('recipe-modal');
     const title = document.getElementById('modal-recipe-title');
@@ -582,7 +547,7 @@ function openNewsModal(newsId) {
     const formattedDate = formatDate(item.date);
     const priorityClass = item.priority ? item.priority.toLowerCase() : 'media';
     
-    // MOSTRAR TODO EL CONTENIDO DE LA NOTICIA
+    // CONTENIDO COMPLETO - SIN LIMITES
     let modalContent = `
         <div style="margin-bottom: 30px;">
             <!-- Imagen principal -->
@@ -620,13 +585,13 @@ function openNewsModal(newsId) {
             </div>
         </div>
         
-        <!-- CONTENIDO COMPLETO DE LA NOTICIA - SIN LIMITES -->
+        <!-- CONTENIDO COMPLETO DE LA NOTICIA -->
         <div style="margin-bottom: 30px;">
             <h4 style="color: var(--primary-dark); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
                 <i class="fas fa-file-alt"></i> Noticia Completa
             </h4>
-            <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.8; font-size: 1.05rem; white-space: normal; word-wrap: break-word;">
-                ${item.content || 'Contenido no disponible'}
+            <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.6; font-size: 1.05rem;">
+                ${item.content.replace(/\n/g, '<br>') || 'Contenido no disponible'}
             </div>
         </div>
         
@@ -644,7 +609,6 @@ function openNewsModal(newsId) {
     `;
     
     content.innerHTML = modalContent;
-    
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 }
@@ -703,8 +667,8 @@ function setupModal() {
     const closeModalBtn = document.getElementById('close-modal-btn');
     const recipeModal = document.getElementById('recipe-modal');
     
-    if (modalClose) modalClose.addEventListener('click', () => closeModal());
-    if (closeModalBtn) closeModalBtn.addEventListener('click', () => closeModal());
+    if (modalClose) modalClose.addEventListener('click', closeModal);
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     
     if (recipeModal) {
         recipeModal.addEventListener('click', (e) => {
@@ -719,7 +683,6 @@ function setupCategories() {
             const category = this.dataset.category;
             currentCategory = category;
             
-            // Actualizar botones de filtro
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.category === category) {
@@ -727,7 +690,6 @@ function setupCategories() {
                 }
             });
             
-            // Scroll suave a noticias
             document.getElementById('news').scrollIntoView({ behavior: 'smooth' });
             renderNews();
         });
@@ -738,9 +700,7 @@ function setupStateButtons() {
     // Botón de reintento
     const retryBtn = document.getElementById('retry-load-btn');
     if (retryBtn) {
-        retryBtn.addEventListener('click', () => {
-            loadNewsFromGoogleSheets();
-        });
+        retryBtn.addEventListener('click', loadNewsFromGoogleSheets);
     }
     
     // Botón para cargar datos locales
@@ -756,14 +716,11 @@ function setupStateButtons() {
 
 // =============== ADMIN SYSTEM ===============
 function setupAdmin() {
-    console.log('🔧 Configurando panel admin...');
-    
     // Botón para abrir admin
     const adminAccessBtn = document.getElementById('admin-access-btn');
     if (adminAccessBtn) {
         adminAccessBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
             showAdminPanel();
         });
     }
@@ -778,7 +735,7 @@ function setupAdmin() {
     setupAddNewsForm();
     setupEditNewsForm();
     
-    // Sincronización - CORREGIDO
+    // Sincronización
     setupSyncFunctions();
     
     // Configuración
@@ -801,12 +758,10 @@ function setupLoginForm() {
                 document.getElementById('admin-login').style.display = 'none';
                 document.getElementById('admin-panel').style.display = 'block';
                 
-                // Cargar datos en admin
                 loadAdminNews();
                 loadEditSelector();
                 loadSettingsForm();
                 
-                // Establecer fecha actual
                 const today = new Date().toISOString().split('T')[0];
                 const dateInput = document.getElementById('new-recipe-date');
                 if (dateInput) dateInput.value = today;
@@ -817,7 +772,6 @@ function setupLoginForm() {
         });
     }
     
-    // Botón mostrar credenciales
     const showCredsBtn = document.getElementById('show-creds-btn');
     if (showCredsBtn) {
         showCredsBtn.addEventListener('click', function() {
@@ -830,13 +784,11 @@ function setupLoginForm() {
         });
     }
     
-    // Cancelar login
     const cancelLoginBtn = document.getElementById('cancel-login-btn');
     if (cancelLoginBtn) {
         cancelLoginBtn.addEventListener('click', hideAdminPanel);
     }
     
-    // Logout
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', hideAdminPanel);
@@ -849,16 +801,13 @@ function setupAdminTabs() {
         btn.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
             
-            // Remover active de todos
             tabBtns.forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            // Agregar active al seleccionado
             this.classList.add('active');
             const tabElement = document.getElementById(tabId);
             if (tabElement) tabElement.classList.add('active');
             
-            // Acciones específicas por tab
             if (tabId === 'news-tab') {
                 loadAdminNews();
             }
@@ -875,10 +824,9 @@ function setupAdminTabs() {
 function setupAddNewsForm() {
     const addNewsForm = document.getElementById('add-recipe-form');
     if (addNewsForm) {
-        addNewsForm.addEventListener('submit', async function(e) {
+        addNewsForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Obtener valores
             const title = document.getElementById('new-recipe-title').value.trim();
             const description = document.getElementById('new-recipe-description').value.trim();
             const category = document.getElementById('new-recipe-category').value;
@@ -890,13 +838,11 @@ function setupAddNewsForm() {
             const source = document.getElementById('new-recipe-source').value.trim();
             const embedCode = document.getElementById('new-recipe-embed').value.trim();
             
-            // Validar
             if (!title || !description || !category || !country || !date || !image || !content || !source) {
-                showFormStatus('Por favor, completa todos los campos obligatorios (*)', 'error');
+                alert('Por favor, completa todos los campos obligatorios (*)');
                 return;
             }
             
-            // Crear nueva noticia
             const newId = news.length > 0 ? Math.max(...news.map(n => n.id)) + 1 : 1;
             const newNews = {
                 id: newId,
@@ -912,28 +858,17 @@ function setupAddNewsForm() {
                 embedCode
             };
             
-            // Agregar a la lista LOCAL
             news.unshift(newNews);
-            
-            // Guardar en localStorage
             saveToLocalStorage();
-            
-            // Actualizar interfaz
             updateNewsCounts();
             renderNews();
             
-            // Mostrar éxito
-            const successMsg = `✅ Noticia "${title}" agregada localmente.`;
-            showFormStatus(successMsg, 'success');
-            
-            // Limpiar formulario
+            alert(`✅ Noticia "${title}" agregada localmente.`);
             addNewsForm.reset();
             
-            // Establecer fecha actual
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('new-recipe-date').value = today;
             
-            // Actualizar admin
             loadAdminNews();
             loadEditSelector();
         });
@@ -950,11 +885,10 @@ function setupEditNewsForm() {
             const newsIndex = news.findIndex(n => n.id === newsId);
             
             if (newsIndex === -1) {
-                showEditFormStatus('Noticia no encontrada', 'error');
+                alert('Noticia no encontrada');
                 return;
             }
             
-            // Actualizar noticia LOCALMENTE
             news[newsIndex].title = document.getElementById('edit-recipe-title').value.trim();
             news[newsIndex].description = document.getElementById('edit-recipe-description').value.trim();
             news[newsIndex].category = document.getElementById('edit-recipe-category').value;
@@ -966,30 +900,23 @@ function setupEditNewsForm() {
             news[newsIndex].source = document.getElementById('edit-recipe-source').value.trim();
             news[newsIndex].embedCode = document.getElementById('edit-recipe-embed').value.trim();
             
-            // Guardar LOCALMENTE
             saveToLocalStorage();
-            
-            // Actualizar interfaz
             updateNewsCounts();
             renderNews();
             
-            // Mostrar éxito
-            showEditFormStatus('✅ Noticia actualizada localmente.', 'success');
-            
-            // Actualizar admin
+            alert('✅ Noticia actualizada localmente.');
             loadAdminNews();
             loadEditSelector();
         });
     }
     
-    // Botón eliminar (LOCAL)
     const deleteBtn = document.getElementById('delete-recipe-btn');
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function() {
             const newsId = parseInt(document.getElementById('edit-recipe-select').value);
             
             if (!newsId) {
-                showEditFormStatus('Selecciona una noticia primero', 'error');
+                alert('Selecciona una noticia primero');
                 return;
             }
             
@@ -997,18 +924,16 @@ function setupEditNewsForm() {
                 const newsIndex = news.findIndex(n => n.id === newsId);
                 
                 if (newsIndex !== -1) {
-                    const title = news[newsIndex].title;
                     news.splice(newsIndex, 1);
                     saveToLocalStorage();
                     updateNewsCounts();
                     renderNews();
                     
-                    // Limpiar formulario
                     editNewsForm.reset();
                     editNewsForm.style.display = 'none';
                     document.getElementById('edit-recipe-select').value = '';
                     
-                    showEditFormStatus(`✅ Noticia "${title}" eliminada localmente.`, 'success');
+                    alert('✅ Noticia eliminada localmente.');
                     loadAdminNews();
                     loadEditSelector();
                 }
@@ -1016,18 +941,15 @@ function setupEditNewsForm() {
         });
     }
     
-    // Cancelar edición
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', function() {
             editNewsForm.reset();
             editNewsForm.style.display = 'none';
             document.getElementById('edit-recipe-select').value = '';
-            document.getElementById('edit-form-status').innerHTML = '';
         });
     }
     
-    // Selector de edición
     const editSelect = document.getElementById('edit-recipe-select');
     if (editSelect) {
         editSelect.addEventListener('change', function() {
@@ -1036,30 +958,22 @@ function setupEditNewsForm() {
                 loadNewsToEdit(newsId);
             } else {
                 document.getElementById('edit-recipe-form').style.display = 'none';
-                document.getElementById('edit-form-status').innerHTML = '';
             }
         });
     }
 }
 
-// =============== SINCRO FUNCTIONS - BOTÓN ACTUALIZAR LISTA CORREGIDO ===============
+// =============== SINCRO FUNCTIONS - CORREGIDO ===============
 function setupSyncFunctions() {
-    console.log('🔄 Configurando funciones de sincronización...');
-    
-    // Sincronizar ahora (solo lectura desde Google Sheets) - CORREGIDO
+    // Sincronizar ahora
     const syncBtn = document.getElementById('sync-now-btn');
     if (syncBtn) {
         syncBtn.addEventListener('click', function() {
-            console.log('🔄 Botón sincronizar clickeado');
-            
-            // Cambiar texto del botón
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
             this.disabled = true;
             
-            // Cargar noticias
             loadNewsFromGoogleSheets();
             
-            // Restaurar botón después de 2 segundos
             setTimeout(() => {
                 this.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Cargar de Google Sheets';
                 this.disabled = false;
@@ -1070,67 +984,45 @@ function setupSyncFunctions() {
     // Exportar a CSV
     const exportBtn = document.getElementById('export-news-btn');
     if (exportBtn) {
-        exportBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Cambiar texto del botón mientras procesa
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando CSV...';
+        exportBtn.addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
             this.disabled = true;
             
-            // Llamar a la función de exportación
             exportAllToCSV();
             
-            // Restaurar botón después de 2 segundos
             setTimeout(() => {
-                this.innerHTML = originalText;
+                this.innerHTML = '<i class="fas fa-file-export"></i> Exportar a CSV';
                 this.disabled = false;
             }, 2000);
         });
     }
     
-    // BOTÓN ACTUALIZAR LISTA - CORREGIDO Y FUNCIONAL
+    // BOTÓN ACTUALIZAR LISTA - FUNCIONAL
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
-            console.log('🔄 Botón "Actualizar Lista" clickeado');
+            console.log('Actualizando lista...');
             
-            // Cambiar texto del botón
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
-            this.disabled = true;
-            
-            // Actualizar la lista de noticias en el admin
+            // Actualizar la lista en el admin
             loadAdminNews();
             loadEditSelector();
             
-            // Mostrar mensaje de éxito
+            // Mostrar mensaje
             const formStatus = document.getElementById('form-status');
             if (formStatus) {
                 formStatus.innerHTML = `
                     <div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin-top: 20px; color: #155724;">
-                        ✅ Lista de noticias actualizada correctamente.
+                        ✅ Lista actualizada correctamente
                     </div>
                 `;
+                
+                setTimeout(() => {
+                    formStatus.innerHTML = '';
+                }, 3000);
             }
             
-            // Restaurar botón
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-redo"></i> Actualizar Lista';
-                this.disabled = false;
-                
-                // Limpiar mensaje después de 3 segundos
-                if (formStatus) {
-                    setTimeout(() => {
-                        formStatus.innerHTML = '';
-                    }, 3000);
-                }
-            }, 1000);
-            
-            console.log('✅ Lista de admin actualizada');
+            console.log('✅ Lista actualizada');
         });
-    } else {
-        console.error('❌ Botón refresh-news-btn NO encontrado');
     }
 }
 
@@ -1138,37 +1030,31 @@ function setupSettingsForm() {
     const saveSettingsBtn = document.getElementById('save-settings-btn');
     if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', function() {
-            // Obtener valores
             siteSettings.googleSheetsId = document.getElementById('google-sheets-id').value.trim();
             siteSettings.logoUrl = document.getElementById('site-logo-url').value.trim();
             siteSettings.siteTitle = document.getElementById('site-title').value.trim();
             siteSettings.siteDescription = document.getElementById('site-description').value.trim();
             
-            // Validar
             if (!siteSettings.siteTitle) {
-                showSettingsStatus('El título del sitio es requerido', 'error');
+                alert('El título del sitio es requerido');
                 return;
             }
             
-            // Guardar
             if (saveSiteSettings()) {
-                // Actualizar Google Sheets ID
                 if (siteSettings.googleSheetsId) {
                     GOOGLE_SHEETS_ID = siteSettings.googleSheetsId;
                 }
                 
-                // Aplicar cambios
                 applySiteSettings();
                 updateLogoPreview();
                 
-                showSettingsStatus('✅ Configuración guardada correctamente.', 'success');
+                alert('✅ Configuración guardada correctamente.');
             } else {
-                showSettingsStatus('Error al guardar la configuración', 'error');
+                alert('Error al guardar la configuración');
             }
         });
     }
     
-    // Reset logo
     const resetLogoBtn = document.getElementById('reset-logo-btn');
     if (resetLogoBtn) {
         resetLogoBtn.addEventListener('click', function() {
@@ -1177,7 +1063,6 @@ function setupSettingsForm() {
         });
     }
     
-    // Logo preview
     const logoUrlInput = document.getElementById('site-logo-url');
     if (logoUrlInput) {
         logoUrlInput.addEventListener('input', updateLogoPreview);
@@ -1185,7 +1070,6 @@ function setupSettingsForm() {
 }
 
 function setupAdminEvents() {
-    // Cerrar admin con Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const adminOverlay = document.getElementById('admin-overlay');
@@ -1195,7 +1079,6 @@ function setupAdminEvents() {
         }
     });
     
-    // Cerrar admin haciendo clic fuera
     const adminOverlay = document.getElementById('admin-overlay');
     if (adminOverlay) {
         adminOverlay.addEventListener('click', function(e) {
@@ -1211,7 +1094,6 @@ function showAdminPanel() {
     document.getElementById('admin-overlay').style.display = 'flex';
     document.body.style.overflow = 'hidden';
     
-    // Mostrar credenciales
     const loginHint = document.getElementById('login-hint');
     if (loginHint) loginHint.classList.add('active');
 }
@@ -1222,28 +1104,20 @@ function hideAdminPanel() {
     document.getElementById('admin-overlay').style.display = 'none';
     document.body.style.overflow = 'auto';
     
-    // Limpiar
     document.getElementById('admin-username').value = '';
     document.getElementById('admin-password').value = '';
     document.getElementById('edit-recipe-form').reset();
     document.getElementById('edit-recipe-form').style.display = 'none';
     document.getElementById('edit-recipe-select').value = '';
     
-    // Ocultar credenciales
     const loginHint = document.getElementById('login-hint');
     if (loginHint) loginHint.classList.remove('active');
     const showCredsBtn = document.getElementById('show-creds-btn');
     if (showCredsBtn) showCredsBtn.textContent = 'Mostrar Credenciales';
-    
-    // Limpiar mensajes
-    document.getElementById('form-status').innerHTML = '';
-    document.getElementById('edit-form-status').innerHTML = '';
-    document.getElementById('settings-status').innerHTML = '';
 }
 
 function loadAdminNews() {
     const adminNewsList = document.getElementById('admin-recipes-list');
-    
     if (!adminNewsList) return;
     
     if (news.length === 0) {
@@ -1251,7 +1125,6 @@ function loadAdminNews() {
             <div style="text-align: center; padding: 40px; color: var(--text-gray);">
                 <i class="fas fa-newspaper" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
                 <p>No hay noticias cargadas.</p>
-                <p style="font-size: 0.9rem; margin-top: 10px;">Usa el formulario "Agregar Noticia" para comenzar.</p>
             </div>
         `;
         return;
@@ -1260,7 +1133,6 @@ function loadAdminNews() {
     let html = '';
     news.forEach(item => {
         const formattedDate = formatDate(item.date);
-        const hasEmbed = item.embedCode && item.embedCode.trim() !== '';
         
         html += `
             <div class="admin-recipe-item">
@@ -1277,12 +1149,6 @@ function loadAdminNews() {
                     <div><strong>País:</strong> ${item.country}</div>
                     <div><strong>Fecha:</strong> ${formattedDate}</div>
                     <div><strong>Prioridad:</strong> ${item.priority || 'Media'}</div>
-                    <div style="grid-column:1/-1;margin-top:10px;">
-                        <strong>Embed:</strong> 
-                        <span style="color:${hasEmbed ? '#28a745' : '#dc3545'};">
-                            ${hasEmbed ? '✅ Disponible' : '❌ No disponible'}
-                        </span>
-                    </div>
                 </div>
             </div>
         `;
@@ -1309,7 +1175,7 @@ function loadEditSelector() {
         const option = document.createElement('option');
         option.value = item.id;
         const shortTitle = item.title.length > 50 ? item.title.substring(0, 47) + '...' : item.title;
-        option.textContent = `${shortTitle} (${item.category} - ${formatDate(item.date)})`;
+        option.textContent = `${shortTitle} (${item.category})`;
         select.appendChild(option);
     });
 }
@@ -1317,11 +1183,10 @@ function loadEditSelector() {
 function loadNewsToEdit(newsId) {
     const item = news.find(n => n.id === newsId);
     if (!item) {
-        showEditFormStatus('Noticia no encontrada', 'error');
+        alert('Noticia no encontrada');
         return;
     }
     
-    // Cargar datos
     document.getElementById('edit-recipe-title').value = item.title;
     document.getElementById('edit-recipe-description').value = item.description;
     document.getElementById('edit-recipe-category').value = item.category;
@@ -1333,9 +1198,7 @@ function loadNewsToEdit(newsId) {
     document.getElementById('edit-recipe-source').value = item.source;
     document.getElementById('edit-recipe-embed').value = item.embedCode || '';
     
-    // Mostrar formulario
     document.getElementById('edit-recipe-form').style.display = 'block';
-    document.getElementById('edit-form-status').innerHTML = '';
 }
 
 function loadSettingsForm() {
@@ -1356,11 +1219,8 @@ function updateLogoPreview() {
     if (logoUrl) {
         logoPreview.innerHTML = `
             <img src="${logoUrl}" alt="Logo preview" 
-                 onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'logo-preview-default\\'><i class=\\'fas fa-newspaper\\'></i><span>Zona Total Novedades</span></div>';"
-                 style="max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 10px;">
-            <div style="font-size: 0.9em; color: #666;">
-                Vista previa del logo
-            </div>
+                 style="max-height: 60px; max-width: 200px; object-fit: contain;">
+            <div style="font-size: 0.9em; color: #666;">Vista previa</div>
         `;
     } else {
         logoPreview.innerHTML = `
@@ -1372,46 +1232,6 @@ function updateLogoPreview() {
     }
 }
 
-function showFormStatus(message, type) {
-    const statusDiv = document.getElementById('form-status');
-    showStatus(statusDiv, message, type);
-}
-
-function showEditFormStatus(message, type) {
-    const statusDiv = document.getElementById('edit-form-status');
-    showStatus(statusDiv, message, type);
-}
-
-function showSettingsStatus(message, type) {
-    const statusDiv = document.getElementById('settings-status');
-    showStatus(statusDiv, message, type);
-}
-
-function showStatus(element, message, type) {
-    if (!element) return;
-    
-    const colors = {
-        'success': { bg: 'rgba(76, 175, 80, 0.1)', border: '#4CAF50', text: '#4CAF50' },
-        'error': { bg: 'rgba(244, 67, 54, 0.1)', border: '#F44336', text: '#F44336' },
-        'info': { bg: 'rgba(23, 162, 184, 0.1)', border: '#17A2B8', text: '#17A2B8' }
-    };
-    
-    const color = colors[type] || colors.info;
-    
-    element.innerHTML = `
-        <div style="padding: 15px; border-radius: 4px; margin-top: 10px; 
-                    background-color: ${color.bg}; 
-                    border-left: 4px solid ${color.border}; 
-                    color: ${color.text};">
-            ${message}
-        </div>
-    `;
-    
-    setTimeout(() => {
-        if (element) element.innerHTML = '';
-    }, 5000);
-}
-
 // =============== FUNCIONES GLOBALES ===============
 window.clearSearch = function() {
     searchQuery = '';
@@ -1420,7 +1240,6 @@ window.clearSearch = function() {
     renderNews();
 };
 
-// Hacer las funciones disponibles globalmente
 window.exportAllToCSV = exportAllToCSV;
 window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
