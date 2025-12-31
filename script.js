@@ -143,37 +143,43 @@ async function loadNewsFromGoogleSheets() {
         }
         
         const csvText = await response.text();
-        console.log('CSV recibido:', csvText.substring(0, 500));
+        console.log('CSV recibido (primeros 500 chars):', csvText.substring(0, 500));
         
-        // Parsear CSV
+        // Parsear CSV CORREGIDO
         const lines = csvText.split('\n').filter(line => line.trim() !== '');
         news = [];
         
         // Saltar encabezados (primera línea)
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i];
-            const values = parseCSVLine(line);
             
-            // Esperar al menos 10 columnas (ajusta según tu estructura)
-            if (values.length >= 10) {
+            // Usar parseCSVLine mejorado
+            const values = parseCSVLineImproved(line);
+            
+            // Verificar que tenemos al menos 8 columnas (ajusta según tu estructura)
+            if (values.length >= 8) {
                 const newsItem = {
                     id: i,
-                    title: values[0]?.trim() || 'Sin título',
-                    description: values[1]?.trim() || 'Sin descripción',
-                    category: values[2]?.trim() || 'Nacional',
-                    country: values[3]?.trim() || 'No especificado',
-                    date: values[4]?.trim() || new Date().toISOString().split('T')[0],
-                    priority: values[5]?.trim() || 'Media',
-                    image: fixImageUrl(values[6]?.trim()),
-                    content: values[7]?.trim() || 'Sin contenido',
-                    source: values[8]?.trim() || 'Fuente no disponible',
-                    embedCode: values[9]?.trim() || '' // Código embed
+                    title: (values[0] || '').trim() || 'Sin título',
+                    description: (values[1] || '').trim() || 'Sin descripción',
+                    category: (values[2] || '').trim() || 'Nacional',
+                    country: (values[3] || '').trim() || 'No especificado',
+                    date: (values[4] || '').trim() || new Date().toISOString().split('T')[0],
+                    priority: (values[5] || '').trim() || 'Media',
+                    image: fixImageUrl((values[6] || '').trim()),
+                    content: (values[7] || '').trim() || 'Sin contenido',
+                    source: (values[8] || '').trim() || 'Fuente no disponible',
+                    embedCode: (values[9] || '').trim() || '' // Código embed (opcional)
                 };
                 
                 // Solo agregar si tiene título
                 if (newsItem.title !== 'Sin título') {
                     news.push(newsItem);
                 }
+                
+                console.log(`Noticia ${i} cargada:`, newsItem.title.substring(0, 50));
+            } else if (values.length > 0) {
+                console.warn(`Fila ${i} tiene solo ${values.length} columnas:`, values);
             }
         }
         
@@ -211,32 +217,43 @@ async function loadNewsFromGoogleSheets() {
     }
 }
 
-function parseCSVLine(line) {
-    const values = [];
+// FUNCIÓN MEJORADA PARA PARSEAR CSV
+function parseCSVLineImproved(line) {
+    const result = [];
     let current = '';
     let inQuotes = false;
     
     for (let i = 0; i < line.length; i++) {
         const char = line[i];
+        const nextChar = line[i + 1];
         
         if (char === '"') {
-            inQuotes = !inQuotes;
+            if (inQuotes && nextChar === '"') {
+                // Comilla doble dentro de comillas
+                current += '"';
+                i++; // Saltar la siguiente comilla
+            } else {
+                // Inicio o fin de comillas
+                inQuotes = !inQuotes;
+            }
         } else if (char === ',' && !inQuotes) {
-            values.push(current);
+            // Fin de campo
+            result.push(current);
             current = '';
         } else {
+            // Carácter normal
             current += char;
         }
     }
     
-    values.push(current);
+    // Agregar el último campo
+    result.push(current);
     
-    // Limpiar comillas y espacios
-    return values.map(v => v.replace(/^"|"$/g, '').trim());
+    return result.map(v => v.trim());
 }
 
 function fixImageUrl(url) {
-    if (!url || url.trim() === '') {
+    if (!url || url.trim() === '' || url === 'null') {
         return DEFAULT_IMAGE;
     }
     
@@ -251,7 +268,7 @@ function fixImageUrl(url) {
     if (fixedUrl.includes('imgur.com') && !fixedUrl.includes('.jpg') && !fixedUrl.includes('.png')) {
         const parts = fixedUrl.split('/');
         const lastPart = parts[parts.length - 1];
-        if (lastPart && lastPart.length > 0) {
+        if (lastPart && lastPart.length > 0 && !lastPart.includes('.')) {
             fixedUrl = `https://i.imgur.com/${lastPart}.jpg`;
         }
     }
@@ -279,7 +296,7 @@ function updateSyncStatus(success, count) {
     }
 }
 
-// =============== FUNCIÓN DE EXPORTACIÓN CSV CORREGIDA ===============
+// =============== FUNCIÓN DE EXPORTACIÓN CSV ===============
 function exportAllToCSV() {
     console.log('🔄 Iniciando exportación a CSV...');
     console.log('📊 Noticias disponibles para exportar:', news.length);
@@ -476,15 +493,15 @@ function renderNews() {
         return;
     }
     
-    // Mostrar noticias
+    // Mostrar noticias - SIN BOTÓN "VER EMBED" PARA USUARIOS
     filteredNews.forEach(item => {
         const card = document.createElement('div');
         card.className = 'recipe-card';
         
         const priorityClass = item.priority.toLowerCase();
         const formattedDate = formatDate(item.date);
-        const hasEmbed = item.embedCode && item.embedCode.trim() !== '';
         
+        // SOLO BOTÓN "LEER NOTICIA" - SIN BOTÓN "VER EMBED"
         card.innerHTML = `
             <div class="recipe-image">
                 <img src="${item.image}" alt="${item.title}" 
@@ -507,12 +524,7 @@ function renderNews() {
                     <button class="view-recipe-btn" onclick="openNewsModal(${item.id})">
                         <i class="fas fa-book-open"></i> Leer Noticia
                     </button>
-                    ${hasEmbed ? 
-                        `<button class="btn btn-success" onclick="showEmbedPreview(${item.id})" style="padding: 8px 12px; font-size: 0.8rem;">
-                            <i class="fas fa-code"></i> Ver Embed
-                        </button>` 
-                        : ''
-                    }
+                    <!-- SE ELIMINÓ EL BOTÓN "VER EMBED" PARA USUARIOS NORMALES -->
                 </div>
             </div>
         `;
@@ -562,7 +574,7 @@ function updateNewsCounts() {
     });
 }
 
-// =============== MODAL DE NOTICIAS ===============
+// =============== MODAL DE NOTICIAS - CORREGIDO ===============
 function openNewsModal(newsId) {
     const item = news.find(n => n.id === newsId);
     if (!item) return;
@@ -579,48 +591,68 @@ function openNewsModal(newsId) {
     const priorityClass = item.priority.toLowerCase();
     const hasEmbed = item.embedCode && item.embedCode.trim() !== '';
     
-    // Construir contenido del modal
+    // CONSTRUIR CONTENIDO DEL MODAL DE FORMA ORDENADA
     let modalContent = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
-            <div>
-                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Categoría</div>
-                <div style="font-weight: 500; color: var(--text-dark);">${item.category}</div>
+        <div style="margin-bottom: 30px;">
+            <!-- Imagen principal -->
+            <div style="text-align: center; margin-bottom: 25px;">
+                <img src="${item.image}" alt="${item.title}" 
+                     style="max-width: 100%; max-height: 400px; border-radius: 10px; object-fit: cover; margin-bottom: 15px;">
+                <p style="color: #666; font-size: 1.1rem; font-style: italic; margin-bottom: 5px;">
+                    ${item.description}
+                </p>
             </div>
-            <div>
-                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">País</div>
-                <div style="font-weight: 500; color: var(--text-dark);">${item.country}</div>
-            </div>
-            <div>
-                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Fecha</div>
-                <div style="font-weight: 500; color: var(--text-dark);">${formattedDate}</div>
-            </div>
-            <div>
-                <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Prioridad</div>
-                <div style="font-weight: 500; color: var(--text-dark);">
-                    <span class="recipe-difficulty ${priorityClass}">${item.priority}</span>
+            
+            <!-- Información de la noticia en formato tabla -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Categoría</div>
+                        <div style="font-weight: 600; color: var(--primary-blue);">${item.category}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">País</div>
+                        <div style="font-weight: 600; color: var(--text-dark);">${item.country}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Fecha</div>
+                        <div style="font-weight: 600; color: var(--text-dark);">${formattedDate}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Prioridad</div>
+                        <div style="font-weight: 600;">
+                            <span class="recipe-difficulty ${priorityClass}">${item.priority}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div style="margin: 30px 0; text-align: center;">
-            <img src="${item.image}" alt="${item.title}" 
-                 style="max-width: 100%; max-height: 400px; border-radius: 10px; object-fit: cover; margin-bottom: 20px;">
-            <p style="color: #666; font-size: 1.1rem; font-style: italic; margin-bottom: 20px;">${item.description}</p>
+    `;
+    
+    // Contenido de la noticia (formateado correctamente)
+    modalContent += `
+        <div style="margin-bottom: 30px;">
+            <h4 style="color: var(--primary-dark); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
+                <i class="fas fa-file-alt"></i> Contenido Completo
+            </h4>
+            <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.8; font-size: 1.05rem; white-space: pre-line;">
+                ${item.content}
+            </div>
         </div>
     `;
     
-    // Agregar embed si existe
-    if (hasEmbed) {
+    // Si tiene embed, agregar sección especial (solo visible si admin quiere mostrar embed)
+    if (hasEmbed && window.location.hash === '#admin') {
         modalContent += `
-            <div style="margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+            <div style="margin: 30px 0; padding: 20px; background: #e8f4fd; border-radius: 8px; border-left: 4px solid #007bff;">
                 <h4 style="color: #007bff; margin-bottom: 15px;">
-                    <i class="fas fa-code"></i> Contenido Incrustado
+                    <i class="fas fa-code"></i> Contenido Incrustado (Solo Admin)
                 </h4>
                 <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #dee2e6; max-height: 300px; overflow-y: auto;">
                     <div style="margin-bottom: 15px;">
                         <strong>Vista previa del embed:</strong>
                     </div>
-                    <div id="embed-preview-${item.id}" style="transform: scale(0.8); transform-origin: top left; pointer-events: none;">
+                    <div id="embed-preview-${item.id}" style="transform: scale(0.8); transform-origin: top left;">
                         <!-- El embed se cargará aquí -->
                     </div>
                     <div style="margin-top: 15px; text-align: center;">
@@ -628,53 +660,34 @@ function openNewsModal(newsId) {
                                 style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             <i class="fas fa-copy"></i> Copiar Código Embed
                         </button>
-                        <button onclick="showFullEmbed(${item.id})" 
-                                style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
-                            <i class="fas fa-expand"></i> Ver Completo
-                        </button>
                     </div>
                 </div>
             </div>
         `;
     }
     
-    // Agregar contenido de la noticia
+    // Información adicional (fuente, etc.)
     modalContent += `
-        <div style="margin-bottom: 30px;">
-            <h4 style="color: var(--primary-blue); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
-                <i class="fas fa-file-alt"></i> Contenido de la Noticia
-            </h4>
-            <div style="background-color: var(--light-bg); padding: 25px; border-radius: 8px; white-space: pre-line; line-height: 1.8; border: 1px solid var(--border-color); font-size: 1.05rem;">
-                ${item.content}
-            </div>
-        </div>
-        
-        <div style="margin-top: 30px; padding: 20px; background-color: rgba(0, 86, 179, 0.05); border-radius: 10px; border-left: 4px solid var(--primary-blue);">
-            <h5 style="color: var(--primary-blue); margin-bottom: 10px;">
-                <i class="fas fa-lightbulb"></i> Información Adicional
+        <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border-left: 4px solid var(--accent-red);">
+            <h5 style="color: var(--accent-red); margin-bottom: 10px;">
+                <i class="fas fa-info-circle"></i> Información Adicional
             </h5>
             <div style="color: #666; font-size: 0.95rem;">
                 <p><strong>Fuente:</strong> ${item.source}</p>
                 <p><strong>Fecha de publicación:</strong> ${formattedDate}</p>
-                ${hasEmbed ? '<p><strong>Embed disponible:</strong> Sí (puedes copiar el código para usar en tu sitio)</p>' : ''}
+                <p><strong>Prioridad:</strong> ${item.priority}</p>
             </div>
         </div>
     `;
     
     content.innerHTML = modalContent;
     
-    // Cargar el embed después de mostrar el modal
-    if (hasEmbed) {
+    // Cargar el embed después de mostrar el modal (solo si es admin)
+    if (hasEmbed && window.location.hash === '#admin') {
         setTimeout(() => {
             const embedContainer = document.getElementById(`embed-preview-${item.id}`);
             if (embedContainer) {
                 embedContainer.innerHTML = item.embedCode;
-                
-                // Habilitar interacción en iframes
-                const iframes = embedContainer.querySelectorAll('iframe');
-                iframes.forEach(iframe => {
-                    iframe.style.pointerEvents = 'auto';
-                });
             }
         }, 100);
     }
@@ -691,60 +704,7 @@ function closeModal() {
     }
 }
 
-// =============== FUNCIONES EMBED ===============
-function showEmbedPreview(newsId) {
-    const item = news.find(n => n.id === newsId);
-    if (!item || !item.embedCode) return;
-    
-    // Crear modal para embed
-    const modal = document.getElementById('recipe-modal');
-    const title = document.getElementById('modal-recipe-title');
-    const content = document.getElementById('modal-recipe-content');
-    
-    title.textContent = `Embed: ${item.title}`;
-    
-    content.innerHTML = `
-        <div style="margin-bottom: 20px;">
-            <h4 style="color: #007bff; margin-bottom: 10px;">Vista Previa del Embed</h4>
-            <p style="color: #666;">Este es el contenido que se mostrará cuando incrustes esta noticia en tu sitio:</p>
-        </div>
-        
-        <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #dee2e6; margin-bottom: 20px; max-height: 500px; overflow-y: auto;">
-            ${item.embedCode}
-        </div>
-        
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">
-            <h4 style="color: #28a745; margin-bottom: 10px;">Código Embed</h4>
-            <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #dee2e6; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
-                ${escapeHtml(item.embedCode)}
-            </div>
-            <div style="margin-top: 15px; text-align: center;">
-                <button onclick="copyEmbedCode(${item.id})" 
-                        style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem;">
-                    <i class="fas fa-copy"></i> Copiar Código
-                </button>
-                <button onclick="testEmbed(${item.id})" 
-                        style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-left: 10px;">
-                    <i class="fas fa-play"></i> Probar Embed
-                </button>
-            </div>
-        </div>
-        
-        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
-            <h5 style="color: #856404; margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Instrucciones</h5>
-            <ol style="color: #856404; margin-left: 20px;">
-                <li>Haz clic en "Copiar Código"</li>
-                <li>Pega el código en cualquier página de tu sitio web</li>
-                <li>La noticia se mostrará automáticamente</li>
-                <li>Es responsive y funcionará en todos los dispositivos</li>
-            </ol>
-        </div>
-    `;
-    
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
+// =============== FUNCIONES EMBED (solo para admin) ===============
 function copyEmbedCode(newsId) {
     const item = news.find(n => n.id === newsId);
     if (!item || !item.embedCode) {
@@ -766,72 +726,6 @@ function copyEmbedCode(newsId) {
     }
     
     document.body.removeChild(textarea);
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function testEmbed(newsId) {
-    const item = news.find(n => n.id === newsId);
-    if (!item || !item.embedCode) return;
-    
-    // Abrir en una nueva ventana para probar
-    const testWindow = window.open('', '_blank');
-    testWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Prueba de Embed: ${item.title}</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    padding: 20px; 
-                    max-width: 800px; 
-                    margin: 0 auto; 
-                    background: #f5f5f5;
-                }
-                .test-container { 
-                    background: white; 
-                    padding: 30px; 
-                    border-radius: 10px; 
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-                h1 { color: #333; margin-bottom: 20px; }
-                .info { 
-                    background: #e8f4fd; 
-                    padding: 15px; 
-                    border-radius: 5px; 
-                    margin-bottom: 20px;
-                    border-left: 4px solid #007bff;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="test-container">
-                <h1>🔍 Prueba de Embed</h1>
-                <div class="info">
-                    <p><strong>Noticia:</strong> ${item.title}</p>
-                    <p><strong>Categoría:</strong> ${item.category}</p>
-                    <p>Esta es una vista previa de cómo se verá el embed en tu sitio.</p>
-                </div>
-                ${item.embedCode}
-                <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                    <p><strong>Nota:</strong> El embed es completamente responsive y funcionará en:</p>
-                    <ul>
-                        <li>📱 Teléfonos móviles</li>
-                        <li>💻 Tablets</li>
-                        <li>🖥️ Escritorio</li>
-                    </ul>
-                </div>
-            </div>
-        </body>
-        </html>
-    `);
-    testWindow.document.close();
 }
 
 // =============== SETUP FUNCTIONS ===============
@@ -955,7 +849,7 @@ function setupAdmin() {
     setupAddNewsForm();
     setupEditNewsForm();
     
-    // Sincronización - ¡ESTA ES LA PARTE IMPORTANTE!
+    // Sincronización
     setupSyncFunctions();
     
     // Configuración
@@ -1225,7 +1119,7 @@ function setupEditNewsForm() {
     }
 }
 
-// =============== SINCRO FUNCTIONS - ¡CORREGIDO! ===============
+// =============== SINCRO FUNCTIONS ===============
 function setupSyncFunctions() {
     console.log('🔄 Configurando funciones de sincronización...');
     
@@ -1249,7 +1143,7 @@ function setupSyncFunctions() {
         console.error('❌ Botón sync-now-btn NO encontrado');
     }
     
-    // ¡¡¡EXPORTAR A CSV - ESTA ES LA PARTE CRÍTICA CORREGIDA!!!
+    // Exportar a CSV
     const exportBtn = document.getElementById('export-news-btn');
     if (exportBtn) {
         console.log('✅ Botón exportar encontrado, agregando event listener...');
@@ -1282,14 +1176,6 @@ function setupSyncFunctions() {
         
     } else {
         console.error('❌ Botón export-news-btn NO encontrado');
-        // Intentar encontrarlo de otra manera
-        setTimeout(() => {
-            const exportBtn2 = document.getElementById('export-news-btn');
-            if (exportBtn2) {
-                console.log('✅ Botón exportar encontrado en segundo intento');
-                exportBtn2.addEventListener('click', exportAllToCSV);
-            }
-        }, 1000);
     }
     
     // Actualizar lista local
@@ -1441,12 +1327,6 @@ function loadAdminNews() {
                         <button class="action-btn edit" onclick="loadNewsToEdit(${item.id})">
                             <i class="fas fa-edit"></i> Editar
                         </button>
-                        ${hasEmbed ? 
-                            `<button class="action-btn" onclick="showEmbedPreview(${item.id})" style="background:#28a745;color:white;border-color:#28a745;">
-                                <i class="fas fa-code"></i> Embed
-                            </button>` 
-                            : ''
-                        }
                     </div>
                 </div>
                 <div class="admin-recipe-details">
@@ -1599,19 +1479,5 @@ window.exportAllToCSV = exportAllToCSV;
 window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
 window.copyEmbedCode = copyEmbedCode;
-window.showEmbedPreview = showEmbedPreview;
-window.testEmbed = testEmbed;
-window.showFullEmbed = showEmbedPreview;
 window.clearSearch = clearSearch;
 window.showAdminPanel = showAdminPanel;
-
-// Función de prueba para verificar que el botón funciona
-window.testExport = function() {
-    console.log('🧪 Probando exportación...');
-    console.log('Noticias:', news.length);
-    if (news.length > 0) {
-        exportAllToCSV();
-    } else {
-        alert('Agrega noticias primero para probar la exportación');
-    }
-};
