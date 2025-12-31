@@ -143,51 +143,48 @@ async function loadNewsFromGoogleSheets() {
         }
         
         const csvText = await response.text();
-        console.log('CSV recibido completo:', csvText);
         
-        // Parsear CSV CORREGIDO - SOLO FILAS VÁLIDAS
-        const lines = csvText.split('\n');
+        // Parsear CSV CORREGIDO
+        const rows = csvText.split('\n').map(row => row.trim());
         news = [];
         let validRowCount = 0;
         
-        // Saltar encabezados (primera línea)
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
             
-            // Solo procesar líneas que no estén vacías
-            if (line === '' || line === ',,,,,,,,,') continue;
+            // Saltar filas vacías
+            if (!row || row === '' || row.replace(/,/g, '').trim() === '') {
+                continue;
+            }
             
-            const values = parseCSVLineFixed(line);
+            // Parsear CSV correctamente
+            const values = parseCSVRow(row);
             
-            console.log(`Fila ${i} procesada:`, values);
-            
-            // Verificar que sea una fila válida (al menos tiene título)
-            if (values.length >= 8 && values[0] && values[0].trim() !== '') {
+            // Verificar que tenga al menos título y descripción
+            if (values.length >= 2 && values[0] && values[0].trim() !== '') {
                 const newsItem = {
-                    id: i,
+                    id: validRowCount + 1,
                     title: (values[0] || '').trim(),
-                    description: (values[1] || '').trim(),
+                    description: (values[1] || '').trim() || 'Sin descripción',
                     category: (values[2] || '').trim() || 'Nacional',
                     country: (values[3] || '').trim() || 'No especificado',
                     date: (values[4] || '').trim() || new Date().toISOString().split('T')[0],
                     priority: (values[5] || '').trim() || 'Media',
                     image: fixImageUrl((values[6] || '').trim()),
-                    content: (values[7] || '').trim(),
+                    content: (values[7] || '').trim() || 'Contenido no disponible',
                     source: (values[8] || '').trim() || 'Fuente no disponible',
                     embedCode: (values[9] || '').trim() || ''
                 };
                 
-                // Solo agregar si tiene título
-                if (newsItem.title !== '') {
+                // Solo agregar si el título no está vacío
+                if (newsItem.title && newsItem.title !== '') {
                     news.push(newsItem);
                     validRowCount++;
-                    console.log(`✅ Noticia ${validRowCount}: ${newsItem.title.substring(0, 50)}`);
                 }
             }
         }
         
         console.log(`✅ ${validRowCount} noticias válidas cargadas desde Google Sheets`);
-        console.log('Total de noticias en array:', news.length);
         
         // Actualizar interfaz
         updateNewsCounts();
@@ -198,6 +195,9 @@ async function loadNewsFromGoogleSheets() {
         
         // Actualizar estado en admin
         updateSyncStatus(true, news.length);
+        
+        // Guardar en localStorage como backup
+        saveToLocalStorage();
         
     } catch (error) {
         console.error('❌ Error cargando desde Google Sheets:', error);
@@ -211,24 +211,20 @@ async function loadNewsFromGoogleSheets() {
         // Actualizar estado en admin
         updateSyncStatus(false, 0);
         
-        // Intentar cargar desde localStorage como respaldo
-        setTimeout(() => {
-            if (news.length === 0) {
-                loadFromLocalStorage();
-            }
-        }, 1000);
+        // Cargar desde localStorage como respaldo
+        loadFromLocalStorage();
     }
 }
 
-// FUNCIÓN FIXED PARA PARSEAR CSV - EVITA FILAS FANTASMA
-function parseCSVLineFixed(line) {
+// Función mejorada para parsear filas CSV
+function parseCSVRow(row) {
     const result = [];
     let current = '';
     let inQuotes = false;
     
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        const nextChar = line[i + 1];
+    for (let i = 0; i < row.length; i++) {
+        const char = row[i];
+        const nextChar = row[i + 1];
         
         if (char === '"') {
             if (inQuotes && nextChar === '"') {
@@ -246,7 +242,14 @@ function parseCSVLineFixed(line) {
     }
     
     result.push(current);
-    return result.map(v => v.trim());
+    return result.map(value => {
+        // Limpiar comillas extras y espacios
+        let cleaned = value.trim();
+        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+            cleaned = cleaned.substring(1, cleaned.length - 1);
+        }
+        return cleaned.replace(/""/g, '"');
+    });
 }
 
 function fixImageUrl(url) {
@@ -315,43 +318,29 @@ function exportAllToCSV() {
         
         // Agregar cada noticia
         news.forEach((item, index) => {
-            console.log(`📝 Procesando noticia ${index + 1}: ${item.title.substring(0, 30)}...`);
-            
             const row = [
-                item.title || '',
-                item.description || '',
-                item.category || '',
-                item.country || '',
-                item.date || '',
-                item.priority || '',
-                item.image || '',
-                item.content || '',
-                item.source || '',
-                item.embedCode || ''
+                `"${(item.title || '').replace(/"/g, '""')}"`,
+                `"${(item.description || '').replace(/"/g, '""')}"`,
+                `"${(item.category || '').replace(/"/g, '""')}"`,
+                `"${(item.country || '').replace(/"/g, '""')}"`,
+                `"${(item.date || '').replace(/"/g, '""')}"`,
+                `"${(item.priority || '').replace(/"/g, '""')}"`,
+                `"${(item.image || '').replace(/"/g, '""')}"`,
+                `"${(item.content || '').replace(/"/g, '""')}"`,
+                `"${(item.source || '').replace(/"/g, '""')}"`,
+                `"${(item.embedCode || '').replace(/"/g, '""')}"`
             ];
             
             rows.push(row);
         });
         
-        // Convertir a CSV (formato correcto)
-        let csvContent = '';
-        rows.forEach(row => {
-            const escapedRow = row.map(cell => {
-                // Escapar comillas dobles
-                let escaped = String(cell).replace(/"/g, '""');
-                // Si tiene comas, saltos de línea o comillas, encerrar en comillas
-                if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')) {
-                    escaped = `"${escaped}"`;
-                }
-                return escaped;
-            });
-            csvContent += escapedRow.join(',') + '\r\n';
-        });
-        
-        console.log('✅ CSV generado, longitud:', csvContent.length, 'caracteres');
+        // Convertir a CSV
+        const csvContent = rows.map(row => row.join(',')).join('\n');
+        const BOM = '\uFEFF'; // Byte Order Mark para Excel
+        const csvWithBOM = BOM + csvContent;
         
         // Crear y descargar archivo
-        const blob = new Blob(['\ufeff' + csvContent], { 
+        const blob = new Blob([csvWithBOM], { 
             type: 'text/csv;charset=utf-8;' 
         });
         
@@ -369,20 +358,6 @@ function exportAllToCSV() {
         setTimeout(() => URL.revokeObjectURL(url), 100);
         
         // Mostrar mensaje de éxito
-        const successMsg = `✅ CSV exportado correctamente.<br><br>
-            <strong>Archivo descargado:</strong> noticias_${new Date().toISOString().split('T')[0]}.csv`;
-        
-        // Mostrar en el panel admin
-        const formStatus = document.getElementById('form-status');
-        if (formStatus) {
-            formStatus.innerHTML = `
-                <div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin-top: 20px; color: #155724;">
-                    ${successMsg}
-                </div>
-            `;
-        }
-        
-        // También mostrar alerta
         alert(`✅ CSV exportado correctamente.\n\nSe descargó el archivo: noticias_${new Date().toISOString().split('T')[0]}.csv`);
         
     } catch (error) {
@@ -396,11 +371,14 @@ function loadFromLocalStorage() {
     try {
         const savedNews = localStorage.getItem('zona_total_novedades');
         if (savedNews) {
-            news = JSON.parse(savedNews);
-            console.log('📂 Noticias cargadas desde localStorage:', news.length);
-            updateNewsCounts();
-            renderNews();
-            return true;
+            const parsedNews = JSON.parse(savedNews);
+            if (Array.isArray(parsedNews) && parsedNews.length > 0) {
+                news = parsedNews;
+                console.log('📂 Noticias cargadas desde localStorage:', news.length);
+                updateNewsCounts();
+                renderNews();
+                return true;
+            }
         }
     } catch (error) {
         console.error('Error cargando desde localStorage:', error);
@@ -432,25 +410,28 @@ function renderNews() {
     
     if (currentCategory !== 'todos') {
         filteredNews = news.filter(n => {
-            const catId = normalizeCategory(n.category);
-            return catId === currentCategory;
+            const normalizedCat = normalizeCategory(n.category);
+            return normalizedCat === currentCategory;
         });
     }
     
     if (searchQuery) {
+        const query = searchQuery.toLowerCase();
         filteredNews = filteredNews.filter(n => {
-            const searchText = (n.title + ' ' + n.description + ' ' + n.category + ' ' + n.country).toLowerCase();
-            return searchText.includes(searchQuery);
+            const searchText = (n.title + ' ' + n.description + ' ' + n.category + ' ' + n.country + ' ' + n.source).toLowerCase();
+            return searchText.includes(query);
         });
     }
     
     // Ordenar por prioridad y fecha
     filteredNews.sort((a, b) => {
         const priorityOrder = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
-        if (priorityOrder[b.priority] !== priorityOrder[a.priority]) {
-            return priorityOrder[b.priority] - priorityOrder[a.priority];
-        }
-        return new Date(b.date) - new Date(a.date);
+        const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        if (priorityDiff !== 0) return priorityDiff;
+        
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
     });
     
     // Si no hay noticias
@@ -482,16 +463,16 @@ function renderNews() {
         const card = document.createElement('div');
         card.className = 'recipe-card';
         
-        const priorityClass = item.priority.toLowerCase();
+        const priorityClass = item.priority ? item.priority.toLowerCase() : 'media';
         const formattedDate = formatDate(item.date);
         
         card.innerHTML = `
             <div class="recipe-image">
                 <img src="${item.image}" alt="${item.title}" 
                      onerror="this.src='${DEFAULT_IMAGE}'"
-                     style="width:100%;height:200px;object-fit:cover;border-radius:8px 8px 0 0;">
+                     loading="lazy">
                 <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.8rem;">
-                    ${item.priority}
+                    ${item.priority || 'Media'}
                 </div>
             </div>
             <div class="recipe-content">
@@ -499,7 +480,7 @@ function renderNews() {
                     <h3 class="recipe-title">${item.title}</h3>
                     <span class="recipe-difficulty ${priorityClass}">${item.country}</span>
                 </div>
-                <p class="recipe-description">${item.description}</p>
+                <p class="recipe-description">${item.description || 'Sin descripción'}</p>
                 <div class="recipe-meta">
                     <span class="recipe-category">${item.category}</span>
                     <span class="recipe-time"><i class="fas fa-calendar-alt"></i> ${formattedDate}</span>
@@ -518,22 +499,28 @@ function renderNews() {
 function normalizeCategory(category) {
     if (!category) return '';
     
-    return category.toLowerCase()
+    const normalized = category.toLowerCase()
+        .trim()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
-        .replace('economia', 'economia')
-        .replace('tecnologia', 'tecnologia')
-        .replace('í', 'i')
-        .replace('é', 'e')
-        .replace('á', 'a')
-        .replace('ó', 'o')
-        .replace('ú', 'u');
+        .replace(/[^a-z0-9]/g, '');
+    
+    // Mapear variaciones a categorías estándar
+    if (normalized.includes('nacional')) return 'nacional';
+    if (normalized.includes('internacional')) return 'internacional';
+    if (normalized.includes('econom')) return 'economia';
+    if (normalized.includes('tecnolog')) return 'tecnologia';
+    if (normalized.includes('deporte')) return 'deportes';
+    if (normalized.includes('cultur')) return 'cultura';
+    if (normalized.includes('celebridad')) return 'celebridades';
+    
+    return normalized;
 }
 
 function formatDate(dateString) {
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {
-            return dateString;
+            return 'Fecha no disponible';
         }
         return date.toLocaleDateString('es-ES', {
             day: 'numeric',
@@ -541,7 +528,7 @@ function formatDate(dateString) {
             year: 'numeric'
         });
     } catch (error) {
-        return dateString;
+        return dateString || 'Fecha no disponible';
     }
 }
 
@@ -554,41 +541,53 @@ function updateNewsCounts() {
     const totalElement = document.getElementById('total-news');
     if (totalElement) {
         totalElement.textContent = news.length;
-        console.log('Contador total actualizado:', news.length);
     }
     
-    // Actualizar contadores por categoría - CORREGIDO
-    const categories = [
-        { id: 'nacional', names: ['nacional', 'Nacional'] },
-        { id: 'internacional', names: ['internacional', 'Internacional'] },
-        { id: 'economia', names: ['economía', 'Economía', 'economia', 'Economia'] },
-        { id: 'tecnologia', names: ['tecnología', 'Tecnología', 'tecnologia', 'Tecnologia'] },
-        { id: 'deportes', names: ['deportes', 'Deportes'] },
-        { id: 'cultura', names: ['cultura', 'Cultura'] },
-        { id: 'celebridades', names: ['celebridades', 'Celebridades'] }
-    ];
+    // Inicializar todos los contadores en 0
+    const categories = {
+        'nacional': 0,
+        'internacional': 0,
+        'economia': 0,
+        'tecnologia': 0,
+        'deportes': 0,
+        'cultura': 0,
+        'celebridades': 0
+    };
     
-    categories.forEach(cat => {
-        // Contar noticias que coincidan con cualquier nombre de la categoría
-        const count = news.filter(n => {
-            const normalizedCategory = normalizeCategory(n.category);
-            return cat.names.some(name => 
-                normalizeCategory(name) === normalizedCategory
-            );
-        }).length;
+    // Contar noticias por categoría
+    news.forEach(item => {
+        const normalizedCat = normalizeCategory(item.category);
         
-        const element = document.getElementById(`count-${cat.id}`);
-        if (element) {
-            element.textContent = `${count} noticia${count !== 1 ? 's' : ''}`;
-            console.log(`Categoría ${cat.id}: ${count} noticias`);
+        if (normalizedCat in categories) {
+            categories[normalizedCat]++;
+        } else {
+            // Si no coincide exactamente, buscar coincidencias parciales
+            for (const cat in categories) {
+                if (normalizedCat.includes(cat) || cat.includes(normalizedCat)) {
+                    categories[cat]++;
+                    break;
+                }
+            }
         }
     });
+    
+    // Actualizar elementos HTML
+    for (const [cat, count] of Object.entries(categories)) {
+        const element = document.getElementById(`count-${cat}`);
+        if (element) {
+            element.textContent = `${count} noticia${count !== 1 ? 's' : ''}`;
+            console.log(`Categoría ${cat}: ${count} noticias`);
+        }
+    }
 }
 
-// =============== MODAL DE NOTICIAS - CORREGIDO PARA MOSTRAR TODO EL CONTENIDO ===============
+// =============== MODAL DE NOTICIAS ===============
 function openNewsModal(newsId) {
     const item = news.find(n => n.id === newsId);
-    if (!item) return;
+    if (!item) {
+        console.error('Noticia no encontrada:', newsId);
+        return;
+    }
     
     const modal = document.getElementById('recipe-modal');
     const title = document.getElementById('modal-recipe-title');
@@ -599,9 +598,8 @@ function openNewsModal(newsId) {
     title.textContent = item.title;
     
     const formattedDate = formatDate(item.date);
-    const priorityClass = item.priority.toLowerCase();
+    const priorityClass = item.priority ? item.priority.toLowerCase() : 'media';
     
-    // CONSTRUIR CONTENIDO DEL MODAL - MOSTRAR TODO EL CONTENIDO
     let modalContent = `
         <div style="margin-bottom: 30px;">
             <!-- Imagen principal -->
@@ -610,7 +608,7 @@ function openNewsModal(newsId) {
                      onerror="this.src='${DEFAULT_IMAGE}'"
                      style="max-width: 100%; max-height: 400px; border-radius: 10px; object-fit: cover; margin-bottom: 15px;">
                 <p style="color: #666; font-size: 1.1rem; font-style: italic; margin-bottom: 5px;">
-                    ${item.description}
+                    ${item.description || 'Sin descripción'}
                 </p>
             </div>
             
@@ -632,7 +630,7 @@ function openNewsModal(newsId) {
                     <div>
                         <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">Prioridad</div>
                         <div style="font-weight: 600;">
-                            <span class="recipe-difficulty ${priorityClass}">${item.priority}</span>
+                            <span class="recipe-difficulty ${priorityClass}">${item.priority || 'Media'}</span>
                         </div>
                     </div>
                 </div>
@@ -645,19 +643,38 @@ function openNewsModal(newsId) {
                 <i class="fas fa-file-alt"></i> Noticia Completa
             </h4>
             <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.8; font-size: 1.05rem; white-space: pre-wrap; word-wrap: break-word;">
-                ${item.content}
+                ${item.content || 'Contenido no disponible'}
             </div>
         </div>
-        
-        <!-- Información adicional -->
+    `;
+    
+    // Agregar embed si existe
+    if (item.embedCode && item.embedCode.trim() !== '') {
+        modalContent += `
+            <div style="margin-bottom: 30px;">
+                <h4 style="color: var(--primary-dark); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
+                    <i class="fas fa-code"></i> Contenido Embebido
+                </h4>
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div id="embed-container" style="margin-bottom: 15px;">
+                        ${item.embedCode}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Información adicional
+    modalContent += `
         <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border-left: 4px solid var(--accent-red);">
             <h5 style="color: var(--accent-red); margin-bottom: 10px;">
                 <i class="fas fa-info-circle"></i> Información Adicional
             </h5>
             <div style="color: #666; font-size: 0.95rem;">
-                <p><strong>Fuente:</strong> ${item.source}</p>
+                <p><strong>Fuente:</strong> ${item.source || 'No especificada'}</p>
                 <p><strong>Fecha de publicación:</strong> ${formattedDate}</p>
-                <p><strong>Prioridad:</strong> ${item.priority}</p>
+                <p><strong>Prioridad:</strong> ${item.priority || 'Media'}</p>
+                ${item.embedCode && item.embedCode.trim() !== '' ? '<p><strong>Contenido embebido:</strong> Disponible</p>' : ''}
             </div>
         </div>
     `;
@@ -666,6 +683,19 @@ function openNewsModal(newsId) {
     
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    
+    // Escalar contenido embebido si existe
+    setTimeout(() => {
+        const embedContainer = document.getElementById('embed-container');
+        if (embedContainer) {
+            const iframes = embedContainer.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                iframe.style.width = '100%';
+                iframe.style.height = '500px';
+                iframe.style.border = 'none';
+            });
+        }
+    }, 100);
 }
 
 function closeModal() {
@@ -797,7 +827,7 @@ function setupAdmin() {
     setupAddNewsForm();
     setupEditNewsForm();
     
-    // Sincronización - CORREGIDO
+    // Sincronización
     setupSyncFunctions();
     
     // Configuración
@@ -942,8 +972,7 @@ function setupAddNewsForm() {
             renderNews();
             
             // Mostrar éxito
-            const successMsg = `✅ Noticia agregada localmente.`;
-            
+            const successMsg = `✅ Noticia "${title}" agregada localmente.`;
             showFormStatus(successMsg, 'success');
             
             // Limpiar formulario
@@ -1017,6 +1046,7 @@ function setupEditNewsForm() {
                 const newsIndex = news.findIndex(n => n.id === newsId);
                 
                 if (newsIndex !== -1) {
+                    const title = news[newsIndex].title;
                     news.splice(newsIndex, 1);
                     saveToLocalStorage();
                     updateNewsCounts();
@@ -1027,7 +1057,7 @@ function setupEditNewsForm() {
                     editNewsForm.style.display = 'none';
                     document.getElementById('edit-recipe-select').value = '';
                     
-                    showEditFormStatus('✅ Noticia eliminada localmente.', 'success');
+                    showEditFormStatus(`✅ Noticia "${title}" eliminada localmente.`, 'success');
                     loadAdminNews();
                     loadEditSelector();
                 }
@@ -1061,23 +1091,31 @@ function setupEditNewsForm() {
     }
 }
 
-// =============== SINCRO FUNCTIONS - BOTÓN ACTUALIZAR LISTA CORREGIDO ===============
 function setupSyncFunctions() {
     console.log('🔄 Configurando funciones de sincronización...');
     
     // Sincronizar ahora (solo lectura desde Google Sheets)
     const syncBtn = document.getElementById('sync-now-btn');
     if (syncBtn) {
-        syncBtn.addEventListener('click', function() {
+        syncBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🔄 Botón sincronizar clickeado');
+            
+            // Cambiar texto del botón
+            const originalHTML = this.innerHTML;
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
             this.disabled = true;
             
-            loadNewsFromGoogleSheets();
-            
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Cargar de Google Sheets';
-                this.disabled = false;
-            }, 2000);
+            // Cargar noticias
+            loadNewsFromGoogleSheets().finally(() => {
+                // Restaurar botón después de 2 segundos
+                setTimeout(() => {
+                    this.innerHTML = originalHTML;
+                    this.disabled = false;
+                }, 2000);
+            });
         });
     }
     
@@ -1104,7 +1142,7 @@ function setupSyncFunctions() {
         });
     }
     
-    // BOTÓN ACTUALIZAR LISTA - CORREGIDO
+    // BOTÓN ACTUALIZAR LISTA
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
@@ -1131,8 +1169,6 @@ function setupSyncFunctions() {
             
             console.log('✅ Lista de admin actualizada');
         });
-    } else {
-        console.error('❌ Botón refresh-news-btn NO encontrado');
     }
 }
 
@@ -1278,7 +1314,7 @@ function loadAdminNews() {
                     <div><strong>Categoría:</strong> ${item.category}</div>
                     <div><strong>País:</strong> ${item.country}</div>
                     <div><strong>Fecha:</strong> ${formattedDate}</div>
-                    <div><strong>Prioridad:</strong> ${item.priority}</div>
+                    <div><strong>Prioridad:</strong> ${item.priority || 'Media'}</div>
                     <div style="grid-column:1/-1;margin-top:10px;">
                         <strong>Embed:</strong> 
                         <span style="color:${hasEmbed ? '#28a745' : '#dc3545'};">
@@ -1358,6 +1394,7 @@ function updateLogoPreview() {
     if (logoUrl) {
         logoPreview.innerHTML = `
             <img src="${logoUrl}" alt="Logo preview" 
+                 onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'logo-preview-default\\'><i class=\\'fas fa-newspaper\\'></i><span>Zona Total Novedades</span></div>';"
                  style="max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 10px;">
             <div style="font-size: 0.9em; color: #666;">
                 Vista previa del logo
@@ -1391,17 +1428,19 @@ function showSettingsStatus(message, type) {
 function showStatus(element, message, type) {
     if (!element) return;
     
+    const colors = {
+        'success': { bg: 'rgba(76, 175, 80, 0.1)', border: '#4CAF50', text: '#4CAF50' },
+        'error': { bg: 'rgba(244, 67, 54, 0.1)', border: '#F44336', text: '#F44336' },
+        'info': { bg: 'rgba(23, 162, 184, 0.1)', border: '#17A2B8', text: '#17A2B8' }
+    };
+    
+    const color = colors[type] || colors.info;
+    
     element.innerHTML = `
         <div style="padding: 15px; border-radius: 4px; margin-top: 10px; 
-                    background-color: ${type === 'success' ? 'rgba(76, 175, 80, 0.1)' : 
-                                      type === 'error' ? 'rgba(244, 67, 54, 0.1)' : 
-                                      type === 'info' ? 'rgba(23, 162, 184, 0.1)' : 'rgba(255, 193, 7, 0.1)'}; 
-                    border-left: 4px solid ${type === 'success' ? '#4CAF50' : 
-                                           type === 'error' ? '#F44336' : 
-                                           type === 'info' ? '#17A2B8' : '#FFC107'}; 
-                    color: ${type === 'success' ? '#4CAF50' : 
-                            type === 'error' ? '#F44336' : 
-                            type === 'info' ? '#17A2B8' : '#FFC107'};">
+                    background-color: ${color.bg}; 
+                    border-left: 4px solid ${color.border}; 
+                    color: ${color.text};">
             ${message}
         </div>
     `;
@@ -1425,3 +1464,5 @@ window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
 window.clearSearch = clearSearch;
 window.showAdminPanel = showAdminPanel;
+window.hideAdminPanel = hideAdminPanel;
+window.loadNewsFromGoogleSheets = loadNewsFromGoogleSheets;
