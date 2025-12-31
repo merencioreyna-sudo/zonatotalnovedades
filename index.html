@@ -519,32 +519,46 @@
                     <div class="sync-info">
                         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                             <h5><i class="fas fa-database"></i> Base de Datos</h5>
-                            <p><strong>Estado:</strong> <span id="sync-status">Desconocido</span></p>
-                            <p><strong>Noticias cargadas:</strong> <span id="loaded-news-count">0</span></p>
-                            <p><strong>Última sincronización:</strong> <span id="last-sync-time">Nunca</span></p>
+                            <p><strong>Estado Google Sheets:</strong> <span id="sync-status">Desconectado</span></p>
+                            <p><strong>Noticias locales:</strong> <span id="loaded-news-count">0</span></p>
+                            <p><strong>Última carga:</strong> <span id="last-sync-time">Nunca</span></p>
                         </div>
                         
                         <div class="sync-actions">
                             <button class="btn btn-primary" id="sync-now-btn">
-                                <i class="fas fa-sync"></i> Sincronizar Ahora
+                                <i class="fas fa-cloud-download-alt"></i> Cargar de Google Sheets
+                            </button>
+                            <button class="btn btn-success" id="export-news-btn">
+                                <i class="fas fa-file-export"></i> Exportar a CSV (para Google Sheets)
                             </button>
                             <button class="btn btn-secondary" id="refresh-news-btn">
                                 <i class="fas fa-redo"></i> Actualizar Lista
                             </button>
-                            <button class="btn btn-success" id="export-news-btn">
-                                <i class="fas fa-file-export"></i> Exportar a Google Sheets
-                            </button>
                         </div>
                         
                         <div style="margin-top: 30px; padding: 15px; background: #e8f4fd; border-radius: 8px; border-left: 4px solid #007bff;">
-                            <h5><i class="fas fa-info-circle"></i> Instrucciones</h5>
+                            <h5><i class="fas fa-info-circle"></i> Instrucciones de Sincronización</h5>
                             <ol style="margin-left: 20px; margin-top: 10px;">
-                                <li>Crea una hoja de cálculo en Google Sheets</li>
-                                <li>Comparte la hoja como "Cualquier persona con el enlace puede ver"</li>
-                                <li>Configura el ID de la hoja en el panel de configuración</li>
-                                <li>Usa "Sincronizar Ahora" para cargar noticias</li>
-                                <li>Los cambios se guardan automáticamente en tu Google Sheets</li>
+                                <li><strong>Para cargar noticias:</strong> Haz clic en "Cargar de Google Sheets"</li>
+                                <li><strong>Para guardar cambios en Google Sheets:</strong>
+                                    <ol type="a">
+                                        <li>Haz clic en "Exportar a CSV"</li>
+                                        <li>Descarga el archivo CSV</li>
+                                        <li>Abre tu Google Sheets</li>
+                                        <li>Ve a Archivo → Importar → Subir → Selecciona el CSV</li>
+                                        <li>Reemplaza la hoja actual</li>
+                                    </ol>
+                                </li>
+                                <li><strong>Para trabajar offline:</strong> Todas las noticias se guardan localmente automáticamente</li>
                             </ol>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <h5><i class="fas fa-lightbulb"></i> Consejo</h5>
+                            <p style="margin: 0; color: #155724;">
+                                <strong>Recomendación:</strong> Agrega todas tus noticias localmente primero. 
+                                Cuando termines, exporta el CSV y súbelo a Google Sheets de una sola vez.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -557,7 +571,7 @@
                         <div class="form-group">
                             <label for="google-sheets-id">ID de Google Sheets</label>
                             <input type="text" id="google-sheets-id" placeholder="Ej: 1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ">
-                            <span class="form-hint">ID de tu hoja de cálculo de Google Sheets</span>
+                            <span class="form-hint">ID de tu hoja de cálculo de Google Sheets (solo lectura)</span>
                         </div>
                         
                         <div class="form-group">
