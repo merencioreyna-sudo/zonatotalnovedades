@@ -141,6 +141,20 @@ p {
     font-size: 0.85rem;
 }
 
+.btn-success {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+}
+
 /* ===== HEADER PROFESIONAL ===== */
 .header {
     background-color: var(--primary-dark);
@@ -1637,8 +1651,6 @@ p {
 .gap-10 { gap: 10px; }
 .w-100 { width: 100%; }
 
-/* Añadir al final del archivo styles.css */
-
 /* Estilos para la pestaña de sincronización */
 .sync-info {
     padding: 20px;
@@ -1664,21 +1676,6 @@ p {
     border-radius: 4px;
     padding: 10px;
     background: white;
-}
-
-/* Botón de embed en tarjetas */
-.btn-success {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn-success:hover {
-    background-color: #218838;
-    transform: translateY(-2px);
 }
 
 /* Responsive improvements */
