@@ -1,5 +1,4 @@
 // =============== CONFIGURACIÓN ===============
-// Configuración por defecto - EL USUARIO PUEDE CAMBIAR ESTO EN EL ADMIN
 let GOOGLE_SHEETS_ID = '1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ'; // EJEMPLO
 const SHEET_NAME = 'Noticias';
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&auto=format&fit=crop&q=80';
@@ -227,7 +226,7 @@ function parseCSVLine(line) {
             current = '';
         } else {
             current += char;
-        }
+    }
     }
     
     values.push(current);
@@ -278,6 +277,53 @@ function updateSyncStatus(success, count) {
         const now = new Date();
         timeElement.textContent = now.toLocaleTimeString('es-ES');
     }
+}
+
+// =============== FUNCIÓN NUEVA: EXPORTAR A CSV ===============
+function exportAllToCSV() {
+    if (news.length === 0) {
+        alert('No hay noticias para exportar');
+        return;
+    }
+    
+    // Encabezados (deben coincidir con tu Google Sheets)
+    const headers = ['Título', 'Descripción', 'Categoría', 'País', 'Fecha', 'Prioridad', 'Imagen', 'Contenido', 'Fuente', 'Embed'];
+    
+    // Crear filas
+    const rows = [headers];
+    
+    news.forEach(item => {
+        const row = [
+            item.title,
+            item.description,
+            item.category,
+            item.country,
+            item.date,
+            item.priority,
+            item.image,
+            item.content,
+            item.source,
+            item.embedCode || ''
+        ];
+        rows.push(row);
+    });
+    
+    // Convertir a CSV
+    const csvContent = rows.map(row => 
+        row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    // Crear y descargar archivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `noticias_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showFormStatus('✅ CSV generado. Ábrelo y copia todo el contenido a tu Google Sheets.', 'success');
 }
 
 // =============== PERSISTENCIA LOCAL (BACKUP) ===============
@@ -942,7 +988,7 @@ function setupAdminTabs() {
 function setupAddNewsForm() {
     const addNewsForm = document.getElementById('add-recipe-form');
     if (addNewsForm) {
-        addNewsForm.addEventListener('submit', function(e) {
+        addNewsForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // Obtener valores
@@ -979,7 +1025,7 @@ function setupAddNewsForm() {
                 embedCode
             };
             
-            // Agregar a la lista
+            // Agregar a la lista LOCAL
             news.unshift(newNews);
             
             // Guardar en localStorage
@@ -989,10 +1035,14 @@ function setupAddNewsForm() {
             updateNewsCounts();
             renderNews();
             
-            // Mostrar éxito
-            const successMsg = embedCode ? 
-                '✅ Noticia agregada con embed. Para sincronizar con Google Sheets, usa la pestaña "Sincronizar".' :
-                '✅ Noticia agregada. Para sincronizar con Google Sheets, usa la pestaña "Sincronizar".';
+            // Mostrar éxito con instrucciones
+            const successMsg = `
+                ✅ Noticia agregada localmente.<br>
+                <strong>Para guardar en Google Sheets:</strong><br>
+                1. Ve a la pestaña "Sincronizar"<br>
+                2. Haz clic en "Exportar a CSV"<br>
+                3. Copia el contenido y pégalo en Google Sheets
+            `;
             
             showFormStatus(successMsg, 'success');
             
@@ -1024,7 +1074,7 @@ function setupEditNewsForm() {
                 return;
             }
             
-            // Actualizar noticia
+            // Actualizar noticia LOCALMENTE
             news[newsIndex].title = document.getElementById('edit-recipe-title').value.trim();
             news[newsIndex].description = document.getElementById('edit-recipe-description').value.trim();
             news[newsIndex].category = document.getElementById('edit-recipe-category').value;
@@ -1036,7 +1086,7 @@ function setupEditNewsForm() {
             news[newsIndex].source = document.getElementById('edit-recipe-source').value.trim();
             news[newsIndex].embedCode = document.getElementById('edit-recipe-embed').value.trim();
             
-            // Guardar
+            // Guardar LOCALMENTE
             saveToLocalStorage();
             
             // Actualizar interfaz
@@ -1044,7 +1094,7 @@ function setupEditNewsForm() {
             renderNews();
             
             // Mostrar éxito
-            showEditFormStatus('✅ Noticia actualizada. Cambios guardados localmente.', 'success');
+            showEditFormStatus('✅ Noticia actualizada localmente.', 'success');
             
             // Actualizar admin
             loadAdminNews();
@@ -1052,7 +1102,7 @@ function setupEditNewsForm() {
         });
     }
     
-    // Botón eliminar
+    // Botón eliminar (LOCAL)
     const deleteBtn = document.getElementById('delete-recipe-btn');
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function() {
@@ -1063,7 +1113,7 @@ function setupEditNewsForm() {
                 return;
             }
             
-            if (confirm('¿Estás seguro de eliminar esta noticia? Esta acción no se puede deshacer.')) {
+            if (confirm('¿Estás seguro de eliminar esta noticia LOCALMENTE?')) {
                 const newsIndex = news.findIndex(n => n.id === newsId);
                 
                 if (newsIndex !== -1) {
@@ -1077,7 +1127,7 @@ function setupEditNewsForm() {
                     editNewsForm.style.display = 'none';
                     document.getElementById('edit-recipe-select').value = '';
                     
-                    showEditFormStatus('✅ Noticia eliminada.', 'success');
+                    showEditFormStatus('✅ Noticia eliminada localmente.', 'success');
                     loadAdminNews();
                     loadEditSelector();
                 }
@@ -1112,23 +1162,31 @@ function setupEditNewsForm() {
 }
 
 function setupSyncFunctions() {
-    // Sincronizar ahora
+    // Sincronizar ahora (solo lectura desde Google Sheets)
     const syncBtn = document.getElementById('sync-now-btn');
     if (syncBtn) {
         syncBtn.addEventListener('click', function() {
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
             this.disabled = true;
             
             loadNewsFromGoogleSheets();
             
             setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-sync"></i> Sincronizar Ahora';
+                this.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Cargar de Google Sheets';
                 this.disabled = false;
             }, 2000);
         });
     }
     
-    // Actualizar lista
+    // Exportar a CSV (para pegar en Google Sheets)
+    const exportBtn = document.getElementById('export-news-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            exportAllToCSV();
+        });
+    }
+    
+    // Actualizar lista local
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
@@ -1136,14 +1194,6 @@ function setupSyncFunctions() {
             loadAdminNews();
             loadEditSelector();
             showFormStatus('✅ Lista de noticias actualizada.', 'success');
-        });
-    }
-    
-    // Exportar a Google Sheets (simulado)
-    const exportBtn = document.getElementById('export-news-btn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function() {
-            showFormStatus('ℹ️ Para exportar a Google Sheets, copia manualmente los datos o usa Google Apps Script.', 'info');
         });
     }
 }
@@ -1437,6 +1487,7 @@ window.clearSearch = function() {
     renderNews();
 };
 
+window.exportAllToCSV = exportAllToCSV;
 window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
 window.copyEmbedCode = copyEmbedCode;
