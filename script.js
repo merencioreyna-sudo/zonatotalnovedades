@@ -121,7 +121,7 @@ function applySiteSettings() {
     }
 }
 
-// =============== GOOGLE SHEETS INTEGRATION ===============
+// =============== GOOGLE SHEETS INTEGRATION - CORREGIDO ===============
 async function loadNewsFromGoogleSheets() {
     try {
         console.log('📥 Cargando noticias desde Google Sheets...');
@@ -143,47 +143,51 @@ async function loadNewsFromGoogleSheets() {
         }
         
         const csvText = await response.text();
-        console.log('CSV recibido (primeros 500 chars):', csvText.substring(0, 500));
+        console.log('CSV recibido completo:', csvText);
         
-        // Parsear CSV CORREGIDO
-        const lines = csvText.split('\n').filter(line => line.trim() !== '');
+        // Parsear CSV CORREGIDO - SOLO FILAS VÁLIDAS
+        const lines = csvText.split('\n');
         news = [];
+        let validRowCount = 0;
         
         // Saltar encabezados (primera línea)
         for (let i = 1; i < lines.length; i++) {
-            const line = lines[i];
+            const line = lines[i].trim();
             
-            // Usar parseCSVLine mejorado
-            const values = parseCSVLineImproved(line);
+            // Solo procesar líneas que no estén vacías
+            if (line === '' || line === ',,,,,,,,,') continue;
             
-            // Verificar que tenemos al menos 8 columnas (ajusta según tu estructura)
-            if (values.length >= 8) {
+            const values = parseCSVLineFixed(line);
+            
+            console.log(`Fila ${i} procesada:`, values);
+            
+            // Verificar que sea una fila válida (al menos tiene título)
+            if (values.length >= 8 && values[0] && values[0].trim() !== '') {
                 const newsItem = {
                     id: i,
-                    title: (values[0] || '').trim() || 'Sin título',
-                    description: (values[1] || '').trim() || 'Sin descripción',
+                    title: (values[0] || '').trim(),
+                    description: (values[1] || '').trim(),
                     category: (values[2] || '').trim() || 'Nacional',
                     country: (values[3] || '').trim() || 'No especificado',
                     date: (values[4] || '').trim() || new Date().toISOString().split('T')[0],
                     priority: (values[5] || '').trim() || 'Media',
                     image: fixImageUrl((values[6] || '').trim()),
-                    content: (values[7] || '').trim() || 'Sin contenido',
+                    content: (values[7] || '').trim(),
                     source: (values[8] || '').trim() || 'Fuente no disponible',
-                    embedCode: (values[9] || '').trim() || '' // Código embed (opcional)
+                    embedCode: (values[9] || '').trim() || ''
                 };
                 
                 // Solo agregar si tiene título
-                if (newsItem.title !== 'Sin título') {
+                if (newsItem.title !== '') {
                     news.push(newsItem);
+                    validRowCount++;
+                    console.log(`✅ Noticia ${validRowCount}: ${newsItem.title.substring(0, 50)}`);
                 }
-                
-                console.log(`Noticia ${i} cargada:`, newsItem.title.substring(0, 50));
-            } else if (values.length > 0) {
-                console.warn(`Fila ${i} tiene solo ${values.length} columnas:`, values);
             }
         }
         
-        console.log(`✅ ${news.length} noticias cargadas desde Google Sheets`);
+        console.log(`✅ ${validRowCount} noticias válidas cargadas desde Google Sheets`);
+        console.log('Total de noticias en array:', news.length);
         
         // Actualizar interfaz
         updateNewsCounts();
@@ -202,8 +206,7 @@ async function loadNewsFromGoogleSheets() {
         document.getElementById('loading-recipes').style.display = 'none';
         document.getElementById('error-recipes').style.display = 'flex';
         document.getElementById('error-message').textContent = 
-            `Error al conectar con Google Sheets: ${error.message}. 
-             Asegúrate de que la hoja de cálculo esté compartida públicamente.`;
+            `Error al conectar con Google Sheets: ${error.message}.`;
         
         // Actualizar estado en admin
         updateSyncStatus(false, 0);
@@ -217,8 +220,8 @@ async function loadNewsFromGoogleSheets() {
     }
 }
 
-// FUNCIÓN MEJORADA PARA PARSEAR CSV
-function parseCSVLineImproved(line) {
+// FUNCIÓN FIXED PARA PARSEAR CSV - EVITA FILAS FANTASMA
+function parseCSVLineFixed(line) {
     const result = [];
     let current = '';
     let inQuotes = false;
@@ -229,35 +232,32 @@ function parseCSVLineImproved(line) {
         
         if (char === '"') {
             if (inQuotes && nextChar === '"') {
-                // Comilla doble dentro de comillas
                 current += '"';
-                i++; // Saltar la siguiente comilla
+                i++;
             } else {
-                // Inicio o fin de comillas
                 inQuotes = !inQuotes;
             }
         } else if (char === ',' && !inQuotes) {
-            // Fin de campo
             result.push(current);
             current = '';
         } else {
-            // Carácter normal
             current += char;
         }
     }
     
-    // Agregar el último campo
     result.push(current);
-    
     return result.map(v => v.trim());
 }
 
 function fixImageUrl(url) {
-    if (!url || url.trim() === '' || url === 'null') {
+    if (!url || url.trim() === '' || url === 'null' || url === '""') {
         return DEFAULT_IMAGE;
     }
     
     let fixedUrl = url.trim();
+    
+    // Limpiar comillas extras
+    fixedUrl = fixedUrl.replace(/^"+|"+$/g, '');
     
     // Si es Unsplash, agregar parámetros para mejor rendimiento
     if (fixedUrl.includes('unsplash.com') && !fixedUrl.includes('?')) {
@@ -273,7 +273,7 @@ function fixImageUrl(url) {
         }
     }
     
-    return fixedUrl;
+    return fixedUrl || DEFAULT_IMAGE;
 }
 
 function updateSyncStatus(success, count) {
@@ -370,13 +370,7 @@ function exportAllToCSV() {
         
         // Mostrar mensaje de éxito
         const successMsg = `✅ CSV exportado correctamente.<br><br>
-            <strong>Archivo descargado:</strong> noticias_${new Date().toISOString().split('T')[0]}.csv<br><br>
-            <strong>Para subir a Google Sheets:</strong><br>
-            1. Abre tu Google Sheets<br>
-            2. Ve a "Archivo" → "Importar" → "Subir"<br>
-            3. Selecciona el archivo CSV descargado<br>
-            4. Elige "Reemplazar hoja de cálculo"<br>
-            5. ¡Listo! Tus noticias estarán en Google Sheets`;
+            <strong>Archivo descargado:</strong> noticias_${new Date().toISOString().split('T')[0]}.csv`;
         
         // Mostrar en el panel admin
         const formStatus = document.getElementById('form-status');
@@ -389,21 +383,11 @@ function exportAllToCSV() {
         }
         
         // También mostrar alerta
-        alert(`✅ CSV exportado correctamente.\n\nSe descargó el archivo: noticias_${new Date().toISOString().split('T')[0]}.csv\n\nAbre Google Sheets y sube este archivo para sincronizar.`);
+        alert(`✅ CSV exportado correctamente.\n\nSe descargó el archivo: noticias_${new Date().toISOString().split('T')[0]}.csv`);
         
     } catch (error) {
         console.error('❌ Error al exportar CSV:', error);
         alert(`❌ Error al exportar CSV: ${error.message}`);
-        
-        // Mostrar error en el panel
-        const formStatus = document.getElementById('form-status');
-        if (formStatus) {
-            formStatus.innerHTML = `
-                <div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px; margin-top: 20px; color: #721c24;">
-                    ❌ Error al exportar CSV: ${error.message}
-                </div>
-            `;
-        }
     }
 }
 
@@ -493,7 +477,7 @@ function renderNews() {
         return;
     }
     
-    // Mostrar noticias - SIN BOTÓN "VER EMBED" PARA USUARIOS
+    // Mostrar noticias
     filteredNews.forEach(item => {
         const card = document.createElement('div');
         card.className = 'recipe-card';
@@ -501,10 +485,10 @@ function renderNews() {
         const priorityClass = item.priority.toLowerCase();
         const formattedDate = formatDate(item.date);
         
-        // SOLO BOTÓN "LEER NOTICIA" - SIN BOTÓN "VER EMBED"
         card.innerHTML = `
             <div class="recipe-image">
                 <img src="${item.image}" alt="${item.title}" 
+                     onerror="this.src='${DEFAULT_IMAGE}'"
                      style="width:100%;height:200px;object-fit:cover;border-radius:8px 8px 0 0;">
                 <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.8rem;">
                     ${item.priority}
@@ -524,7 +508,6 @@ function renderNews() {
                     <button class="view-recipe-btn" onclick="openNewsModal(${item.id})">
                         <i class="fas fa-book-open"></i> Leer Noticia
                     </button>
-                    <!-- SE ELIMINÓ EL BOTÓN "VER EMBED" PARA USUARIOS NORMALES -->
                 </div>
             </div>
         `;
@@ -536,12 +519,14 @@ function normalizeCategory(category) {
     if (!category) return '';
     
     return category.toLowerCase()
-        .replace(/[áéíóú]/g, function(match) {
-            const map = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u'};
-            return map[match];
-        })
-        .replace('economía', 'economia')
-        .replace('tecnología', 'tecnologia');
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
+        .replace('economia', 'economia')
+        .replace('tecnologia', 'tecnologia')
+        .replace('í', 'i')
+        .replace('é', 'e')
+        .replace('á', 'a')
+        .replace('ó', 'o')
+        .replace('ú', 'u');
 }
 
 function formatDate(dateString) {
@@ -560,21 +545,47 @@ function formatDate(dateString) {
     }
 }
 
+// =============== ACTUALIZAR CONTADORES - CORREGIDO ===============
 function updateNewsCounts() {
+    console.log('🔄 Actualizando contadores...');
+    console.log('Total noticias:', news.length);
+    
     // Actualizar contador total
     const totalElement = document.getElementById('total-news');
-    if (totalElement) totalElement.textContent = news.length;
+    if (totalElement) {
+        totalElement.textContent = news.length;
+        console.log('Contador total actualizado:', news.length);
+    }
     
-    // Actualizar contadores por categoría
-    const categories = ['nacional', 'internacional', 'economia', 'tecnologia', 'deportes', 'cultura', 'celebridades'];
+    // Actualizar contadores por categoría - CORREGIDO
+    const categories = [
+        { id: 'nacional', names: ['nacional', 'Nacional'] },
+        { id: 'internacional', names: ['internacional', 'Internacional'] },
+        { id: 'economia', names: ['economía', 'Economía', 'economia', 'Economia'] },
+        { id: 'tecnologia', names: ['tecnología', 'Tecnología', 'tecnologia', 'Tecnologia'] },
+        { id: 'deportes', names: ['deportes', 'Deportes'] },
+        { id: 'cultura', names: ['cultura', 'Cultura'] },
+        { id: 'celebridades', names: ['celebridades', 'Celebridades'] }
+    ];
+    
     categories.forEach(cat => {
-        const count = news.filter(n => normalizeCategory(n.category) === cat).length;
-        const element = document.getElementById(`count-${cat}`);
-        if (element) element.textContent = `${count} noticia${count !== 1 ? 's' : ''}`;
+        // Contar noticias que coincidan con cualquier nombre de la categoría
+        const count = news.filter(n => {
+            const normalizedCategory = normalizeCategory(n.category);
+            return cat.names.some(name => 
+                normalizeCategory(name) === normalizedCategory
+            );
+        }).length;
+        
+        const element = document.getElementById(`count-${cat.id}`);
+        if (element) {
+            element.textContent = `${count} noticia${count !== 1 ? 's' : ''}`;
+            console.log(`Categoría ${cat.id}: ${count} noticias`);
+        }
     });
 }
 
-// =============== MODAL DE NOTICIAS - CORREGIDO ===============
+// =============== MODAL DE NOTICIAS - CORREGIDO PARA MOSTRAR TODO EL CONTENIDO ===============
 function openNewsModal(newsId) {
     const item = news.find(n => n.id === newsId);
     if (!item) return;
@@ -589,21 +600,21 @@ function openNewsModal(newsId) {
     
     const formattedDate = formatDate(item.date);
     const priorityClass = item.priority.toLowerCase();
-    const hasEmbed = item.embedCode && item.embedCode.trim() !== '';
     
-    // CONSTRUIR CONTENIDO DEL MODAL DE FORMA ORDENADA
+    // CONSTRUIR CONTENIDO DEL MODAL - MOSTRAR TODO EL CONTENIDO
     let modalContent = `
         <div style="margin-bottom: 30px;">
             <!-- Imagen principal -->
             <div style="text-align: center; margin-bottom: 25px;">
                 <img src="${item.image}" alt="${item.title}" 
+                     onerror="this.src='${DEFAULT_IMAGE}'"
                      style="max-width: 100%; max-height: 400px; border-radius: 10px; object-fit: cover; margin-bottom: 15px;">
                 <p style="color: #666; font-size: 1.1rem; font-style: italic; margin-bottom: 5px;">
                     ${item.description}
                 </p>
             </div>
             
-            <!-- Información de la noticia en formato tabla -->
+            <!-- Información de la noticia -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                     <div>
@@ -627,47 +638,18 @@ function openNewsModal(newsId) {
                 </div>
             </div>
         </div>
-    `;
-    
-    // Contenido de la noticia (formateado correctamente)
-    modalContent += `
+        
+        <!-- CONTENIDO COMPLETO DE LA NOTICIA -->
         <div style="margin-bottom: 30px;">
             <h4 style="color: var(--primary-dark); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
-                <i class="fas fa-file-alt"></i> Contenido Completo
+                <i class="fas fa-file-alt"></i> Noticia Completa
             </h4>
-            <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.8; font-size: 1.05rem; white-space: pre-line;">
+            <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.8; font-size: 1.05rem; white-space: pre-wrap; word-wrap: break-word;">
                 ${item.content}
             </div>
         </div>
-    `;
-    
-    // Si tiene embed, agregar sección especial (solo visible si admin quiere mostrar embed)
-    if (hasEmbed && window.location.hash === '#admin') {
-        modalContent += `
-            <div style="margin: 30px 0; padding: 20px; background: #e8f4fd; border-radius: 8px; border-left: 4px solid #007bff;">
-                <h4 style="color: #007bff; margin-bottom: 15px;">
-                    <i class="fas fa-code"></i> Contenido Incrustado (Solo Admin)
-                </h4>
-                <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #dee2e6; max-height: 300px; overflow-y: auto;">
-                    <div style="margin-bottom: 15px;">
-                        <strong>Vista previa del embed:</strong>
-                    </div>
-                    <div id="embed-preview-${item.id}" style="transform: scale(0.8); transform-origin: top left;">
-                        <!-- El embed se cargará aquí -->
-                    </div>
-                    <div style="margin-top: 15px; text-align: center;">
-                        <button onclick="copyEmbedCode(${item.id})" 
-                                style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            <i class="fas fa-copy"></i> Copiar Código Embed
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Información adicional (fuente, etc.)
-    modalContent += `
+        
+        <!-- Información adicional -->
         <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border-left: 4px solid var(--accent-red);">
             <h5 style="color: var(--accent-red); margin-bottom: 10px;">
                 <i class="fas fa-info-circle"></i> Información Adicional
@@ -682,16 +664,6 @@ function openNewsModal(newsId) {
     
     content.innerHTML = modalContent;
     
-    // Cargar el embed después de mostrar el modal (solo si es admin)
-    if (hasEmbed && window.location.hash === '#admin') {
-        setTimeout(() => {
-            const embedContainer = document.getElementById(`embed-preview-${item.id}`);
-            if (embedContainer) {
-                embedContainer.innerHTML = item.embedCode;
-            }
-        }, 100);
-    }
-    
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 }
@@ -702,30 +674,6 @@ function closeModal() {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
     }
-}
-
-// =============== FUNCIONES EMBED (solo para admin) ===============
-function copyEmbedCode(newsId) {
-    const item = news.find(n => n.id === newsId);
-    if (!item || !item.embedCode) {
-        alert('Esta noticia no tiene código embed');
-        return;
-    }
-    
-    const textarea = document.createElement('textarea');
-    textarea.value = item.embedCode;
-    document.body.appendChild(textarea);
-    textarea.select();
-    
-    try {
-        document.execCommand('copy');
-        alert('✅ Código embed copiado al portapapeles.\n\nAhora puedes pegarlo en tu sitio web.');
-    } catch (err) {
-        console.error('Error al copiar:', err);
-        alert('Error al copiar. Por favor, selecciona y copia manualmente.');
-    }
-    
-    document.body.removeChild(textarea);
 }
 
 // =============== SETUP FUNCTIONS ===============
@@ -849,7 +797,7 @@ function setupAdmin() {
     setupAddNewsForm();
     setupEditNewsForm();
     
-    // Sincronización
+    // Sincronización - CORREGIDO
     setupSyncFunctions();
     
     // Configuración
@@ -993,14 +941,8 @@ function setupAddNewsForm() {
             updateNewsCounts();
             renderNews();
             
-            // Mostrar éxito con instrucciones
-            const successMsg = `
-                ✅ Noticia agregada localmente.<br>
-                <strong>Para guardar en Google Sheets:</strong><br>
-                1. Ve a la pestaña "Sincronizar"<br>
-                2. Haz clic en "Exportar a CSV"<br>
-                3. Copia el contenido y pégalo en Google Sheets
-            `;
+            // Mostrar éxito
+            const successMsg = `✅ Noticia agregada localmente.`;
             
             showFormStatus(successMsg, 'success');
             
@@ -1119,16 +1061,14 @@ function setupEditNewsForm() {
     }
 }
 
-// =============== SINCRO FUNCTIONS ===============
+// =============== SINCRO FUNCTIONS - BOTÓN ACTUALIZAR LISTA CORREGIDO ===============
 function setupSyncFunctions() {
     console.log('🔄 Configurando funciones de sincronización...');
     
     // Sincronizar ahora (solo lectura desde Google Sheets)
     const syncBtn = document.getElementById('sync-now-btn');
     if (syncBtn) {
-        console.log('✅ Botón sincronizar encontrado');
         syncBtn.addEventListener('click', function() {
-            console.log('🔄 Clic en botón sincronizar');
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
             this.disabled = true;
             
@@ -1139,18 +1079,12 @@ function setupSyncFunctions() {
                 this.disabled = false;
             }, 2000);
         });
-    } else {
-        console.error('❌ Botón sync-now-btn NO encontrado');
     }
     
     // Exportar a CSV
     const exportBtn = document.getElementById('export-news-btn');
     if (exportBtn) {
-        console.log('✅ Botón exportar encontrado, agregando event listener...');
-        
-        // Agregar event listener CORRECTAMENTE
         exportBtn.addEventListener('click', function(e) {
-            console.log('🔄 Clic en botón exportar CSV');
             e.preventDefault();
             e.stopPropagation();
             
@@ -1168,26 +1102,37 @@ function setupSyncFunctions() {
                 this.disabled = false;
             }, 2000);
         });
-        
-        // También hacerlo disponible globalmente por si acaso
-        window.exportCSV = function() {
-            exportAllToCSV();
-        };
-        
-    } else {
-        console.error('❌ Botón export-news-btn NO encontrado');
     }
     
-    // Actualizar lista local
+    // BOTÓN ACTUALIZAR LISTA - CORREGIDO
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
-        console.log('✅ Botón refrescar encontrado');
         refreshBtn.addEventListener('click', function() {
-            renderNews();
+            console.log('🔄 Botón "Actualizar Lista" clickeado');
+            
+            // Actualizar la lista de noticias en el admin
             loadAdminNews();
             loadEditSelector();
-            showFormStatus('✅ Lista de noticias actualizada.', 'success');
+            
+            // Mostrar mensaje de éxito
+            const formStatus = document.getElementById('form-status');
+            if (formStatus) {
+                formStatus.innerHTML = `
+                    <div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin-top: 20px; color: #155724;">
+                        ✅ Lista de noticias actualizada en el panel de administración.
+                    </div>
+                `;
+                
+                // Limpiar mensaje después de 3 segundos
+                setTimeout(() => {
+                    formStatus.innerHTML = '';
+                }, 3000);
+            }
+            
+            console.log('✅ Lista de admin actualizada');
         });
+    } else {
+        console.error('❌ Botón refresh-news-btn NO encontrado');
     }
 }
 
@@ -1478,6 +1423,5 @@ window.clearSearch = function() {
 window.exportAllToCSV = exportAllToCSV;
 window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
-window.copyEmbedCode = copyEmbedCode;
 window.clearSearch = clearSearch;
 window.showAdminPanel = showAdminPanel;
