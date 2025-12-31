@@ -144,13 +144,13 @@ async function loadNewsFromGoogleSheets() {
         
         const csvText = await response.text();
         
-        // Parsear CSV CORREGIDO
-        const rows = csvText.split('\n').map(row => row.trim());
+        // Parsear CSV - SOLO LAS 5 NOTICIAS REALES
+        const rows = csvText.split('\n');
         news = [];
-        let validRowCount = 0;
         
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
+        // Solo tomar las primeras 5 filas después del encabezado
+        for (let i = 1; i <= 5 && i < rows.length; i++) {
+            const row = rows[i].trim();
             
             // Saltar filas vacías
             if (!row || row === '' || row.replace(/,/g, '').trim() === '') {
@@ -160,10 +160,10 @@ async function loadNewsFromGoogleSheets() {
             // Parsear CSV correctamente
             const values = parseCSVRow(row);
             
-            // Verificar que tenga al menos título y descripción
+            // Verificar que tenga al menos título
             if (values.length >= 2 && values[0] && values[0].trim() !== '') {
                 const newsItem = {
-                    id: validRowCount + 1,
+                    id: i,
                     title: (values[0] || '').trim(),
                     description: (values[1] || '').trim() || 'Sin descripción',
                     category: (values[2] || '').trim() || 'Nacional',
@@ -179,12 +179,11 @@ async function loadNewsFromGoogleSheets() {
                 // Solo agregar si el título no está vacío
                 if (newsItem.title && newsItem.title !== '') {
                     news.push(newsItem);
-                    validRowCount++;
                 }
             }
         }
         
-        console.log(`✅ ${validRowCount} noticias válidas cargadas desde Google Sheets`);
+        console.log(`✅ ${news.length} noticias cargadas desde Google Sheets`);
         
         // Actualizar interfaz
         updateNewsCounts();
@@ -216,7 +215,7 @@ async function loadNewsFromGoogleSheets() {
     }
 }
 
-// Función mejorada para parsear filas CSV
+// Función para parsear filas CSV
 function parseCSVRow(row) {
     const result = [];
     let current = '';
@@ -262,20 +261,6 @@ function fixImageUrl(url) {
     // Limpiar comillas extras
     fixedUrl = fixedUrl.replace(/^"+|"+$/g, '');
     
-    // Si es Unsplash, agregar parámetros para mejor rendimiento
-    if (fixedUrl.includes('unsplash.com') && !fixedUrl.includes('?')) {
-        fixedUrl += '?w=800&auto=format&fit=crop&q=80';
-    }
-    
-    // Si es Imgur sin extensión, agregar .jpg
-    if (fixedUrl.includes('imgur.com') && !fixedUrl.includes('.jpg') && !fixedUrl.includes('.png')) {
-        const parts = fixedUrl.split('/');
-        const lastPart = parts[parts.length - 1];
-        if (lastPart && lastPart.length > 0 && !lastPart.includes('.')) {
-            fixedUrl = `https://i.imgur.com/${lastPart}.jpg`;
-        }
-    }
-    
     return fixedUrl || DEFAULT_IMAGE;
 }
 
@@ -310,14 +295,14 @@ function exportAllToCSV() {
     }
     
     try {
-        // Encabezados (deben coincidir con tu Google Sheets)
+        // Encabezados
         const headers = ['Título', 'Descripción', 'Categoría', 'País', 'Fecha', 'Prioridad', 'Imagen', 'Contenido', 'Fuente', 'Embed'];
         
         // Crear filas comenzando con encabezados
         const rows = [headers];
         
         // Agregar cada noticia
-        news.forEach((item, index) => {
+        news.forEach((item) => {
             const row = [
                 `"${(item.title || '').replace(/"/g, '""')}"`,
                 `"${(item.description || '').replace(/"/g, '""')}"`,
@@ -336,7 +321,7 @@ function exportAllToCSV() {
         
         // Convertir a CSV
         const csvContent = rows.map(row => row.join(',')).join('\n');
-        const BOM = '\uFEFF'; // Byte Order Mark para Excel
+        const BOM = '\uFEFF';
         const csvWithBOM = BOM + csvContent;
         
         // Crear y descargar archivo
@@ -357,7 +342,6 @@ function exportAllToCSV() {
         // Liberar memoria
         setTimeout(() => URL.revokeObjectURL(url), 100);
         
-        // Mostrar mensaje de éxito
         alert(`✅ CSV exportado correctamente.\n\nSe descargó el archivo: noticias_${new Date().toISOString().split('T')[0]}.csv`);
         
     } catch (error) {
@@ -501,10 +485,9 @@ function normalizeCategory(category) {
     
     const normalized = category.toLowerCase()
         .trim()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
-        .replace(/[^a-z0-9]/g, '');
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     
-    // Mapear variaciones a categorías estándar
+    // Mapear variaciones
     if (normalized.includes('nacional')) return 'nacional';
     if (normalized.includes('internacional')) return 'internacional';
     if (normalized.includes('econom')) return 'economia';
@@ -535,9 +518,9 @@ function formatDate(dateString) {
 // =============== ACTUALIZAR CONTADORES - CORREGIDO ===============
 function updateNewsCounts() {
     console.log('🔄 Actualizando contadores...');
-    console.log('Total noticias:', news.length);
+    console.log('Total noticias REALES:', news.length);
     
-    // Actualizar contador total
+    // Actualizar contador total - SOLO las 5 noticias reales
     const totalElement = document.getElementById('total-news');
     if (totalElement) {
         totalElement.textContent = news.length;
@@ -554,17 +537,16 @@ function updateNewsCounts() {
         'celebridades': 0
     };
     
-    // Contar noticias por categoría
+    // Contar noticias por categoría - SIMPLE Y DIRECTO
     news.forEach(item => {
-        const normalizedCat = normalizeCategory(item.category);
-        
-        if (normalizedCat in categories) {
-            categories[normalizedCat]++;
-        } else {
-            // Si no coincide exactamente, buscar coincidencias parciales
-            for (const cat in categories) {
-                if (normalizedCat.includes(cat) || cat.includes(normalizedCat)) {
-                    categories[cat]++;
+        const cat = normalizeCategory(item.category);
+        if (cat in categories) {
+            categories[cat]++;
+        } else if (cat) {
+            // Asignar a la categoría más cercana
+            for (const categoryKey in categories) {
+                if (cat.includes(categoryKey) || categoryKey.includes(cat)) {
+                    categories[categoryKey]++;
                     break;
                 }
             }
@@ -581,7 +563,7 @@ function updateNewsCounts() {
     }
 }
 
-// =============== MODAL DE NOTICIAS ===============
+// =============== MODAL DE NOTICIAS - CORREGIDO PARA MOSTRAR TODO ===============
 function openNewsModal(newsId) {
     const item = news.find(n => n.id === newsId);
     if (!item) {
@@ -600,6 +582,7 @@ function openNewsModal(newsId) {
     const formattedDate = formatDate(item.date);
     const priorityClass = item.priority ? item.priority.toLowerCase() : 'media';
     
+    // MOSTRAR TODO EL CONTENIDO DE LA NOTICIA
     let modalContent = `
         <div style="margin-bottom: 30px;">
             <!-- Imagen principal -->
@@ -637,35 +620,17 @@ function openNewsModal(newsId) {
             </div>
         </div>
         
-        <!-- CONTENIDO COMPLETO DE LA NOTICIA -->
+        <!-- CONTENIDO COMPLETO DE LA NOTICIA - SIN LIMITES -->
         <div style="margin-bottom: 30px;">
             <h4 style="color: var(--primary-dark); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
                 <i class="fas fa-file-alt"></i> Noticia Completa
             </h4>
-            <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.8; font-size: 1.05rem; white-space: pre-wrap; word-wrap: break-word;">
+            <div style="background-color: white; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.8; font-size: 1.05rem; white-space: normal; word-wrap: break-word;">
                 ${item.content || 'Contenido no disponible'}
             </div>
         </div>
-    `;
-    
-    // Agregar embed si existe
-    if (item.embedCode && item.embedCode.trim() !== '') {
-        modalContent += `
-            <div style="margin-bottom: 30px;">
-                <h4 style="color: var(--primary-dark); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue);">
-                    <i class="fas fa-code"></i> Contenido Embebido
-                </h4>
-                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <div id="embed-container" style="margin-bottom: 15px;">
-                        ${item.embedCode}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Información adicional
-    modalContent += `
+        
+        <!-- Información adicional -->
         <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border-left: 4px solid var(--accent-red);">
             <h5 style="color: var(--accent-red); margin-bottom: 10px;">
                 <i class="fas fa-info-circle"></i> Información Adicional
@@ -674,7 +639,6 @@ function openNewsModal(newsId) {
                 <p><strong>Fuente:</strong> ${item.source || 'No especificada'}</p>
                 <p><strong>Fecha de publicación:</strong> ${formattedDate}</p>
                 <p><strong>Prioridad:</strong> ${item.priority || 'Media'}</p>
-                ${item.embedCode && item.embedCode.trim() !== '' ? '<p><strong>Contenido embebido:</strong> Disponible</p>' : ''}
             </div>
         </div>
     `;
@@ -683,19 +647,6 @@ function openNewsModal(newsId) {
     
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-    
-    // Escalar contenido embebido si existe
-    setTimeout(() => {
-        const embedContainer = document.getElementById('embed-container');
-        if (embedContainer) {
-            const iframes = embedContainer.querySelectorAll('iframe');
-            iframes.forEach(iframe => {
-                iframe.style.width = '100%';
-                iframe.style.height = '500px';
-                iframe.style.border = 'none';
-            });
-        }
-    }, 100);
 }
 
 function closeModal() {
@@ -827,7 +778,7 @@ function setupAdmin() {
     setupAddNewsForm();
     setupEditNewsForm();
     
-    // Sincronización
+    // Sincronización - CORREGIDO
     setupSyncFunctions();
     
     // Configuración
@@ -1091,31 +1042,28 @@ function setupEditNewsForm() {
     }
 }
 
+// =============== SINCRO FUNCTIONS - BOTÓN ACTUALIZAR LISTA CORREGIDO ===============
 function setupSyncFunctions() {
     console.log('🔄 Configurando funciones de sincronización...');
     
-    // Sincronizar ahora (solo lectura desde Google Sheets)
+    // Sincronizar ahora (solo lectura desde Google Sheets) - CORREGIDO
     const syncBtn = document.getElementById('sync-now-btn');
     if (syncBtn) {
-        syncBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
+        syncBtn.addEventListener('click', function() {
             console.log('🔄 Botón sincronizar clickeado');
             
             // Cambiar texto del botón
-            const originalHTML = this.innerHTML;
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
             this.disabled = true;
             
             // Cargar noticias
-            loadNewsFromGoogleSheets().finally(() => {
-                // Restaurar botón después de 2 segundos
-                setTimeout(() => {
-                    this.innerHTML = originalHTML;
-                    this.disabled = false;
-                }, 2000);
-            });
+            loadNewsFromGoogleSheets();
+            
+            // Restaurar botón después de 2 segundos
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Cargar de Google Sheets';
+                this.disabled = false;
+            }, 2000);
         });
     }
     
@@ -1142,11 +1090,15 @@ function setupSyncFunctions() {
         });
     }
     
-    // BOTÓN ACTUALIZAR LISTA
+    // BOTÓN ACTUALIZAR LISTA - CORREGIDO Y FUNCIONAL
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
             console.log('🔄 Botón "Actualizar Lista" clickeado');
+            
+            // Cambiar texto del botón
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
+            this.disabled = true;
             
             // Actualizar la lista de noticias en el admin
             loadAdminNews();
@@ -1157,18 +1109,28 @@ function setupSyncFunctions() {
             if (formStatus) {
                 formStatus.innerHTML = `
                     <div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin-top: 20px; color: #155724;">
-                        ✅ Lista de noticias actualizada en el panel de administración.
+                        ✅ Lista de noticias actualizada correctamente.
                     </div>
                 `;
+            }
+            
+            // Restaurar botón
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-redo"></i> Actualizar Lista';
+                this.disabled = false;
                 
                 // Limpiar mensaje después de 3 segundos
-                setTimeout(() => {
-                    formStatus.innerHTML = '';
-                }, 3000);
-            }
+                if (formStatus) {
+                    setTimeout(() => {
+                        formStatus.innerHTML = '';
+                    }, 3000);
+                }
+            }, 1000);
             
             console.log('✅ Lista de admin actualizada');
         });
+    } else {
+        console.error('❌ Botón refresh-news-btn NO encontrado');
     }
 }
 
