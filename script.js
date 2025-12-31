@@ -226,7 +226,7 @@ function parseCSVLine(line) {
             current = '';
         } else {
             current += char;
-    }
+        }
     }
     
     values.push(current);
@@ -279,51 +279,115 @@ function updateSyncStatus(success, count) {
     }
 }
 
-// =============== FUNCIÓN NUEVA: EXPORTAR A CSV ===============
+// =============== FUNCIÓN DE EXPORTACIÓN CSV CORREGIDA ===============
 function exportAllToCSV() {
+    console.log('🔄 Iniciando exportación a CSV...');
+    console.log('📊 Noticias disponibles para exportar:', news.length);
+    
     if (news.length === 0) {
-        alert('No hay noticias para exportar');
+        alert('⚠️ No hay noticias para exportar. Agrega noticias primero.');
         return;
     }
     
-    // Encabezados (deben coincidir con tu Google Sheets)
-    const headers = ['Título', 'Descripción', 'Categoría', 'País', 'Fecha', 'Prioridad', 'Imagen', 'Contenido', 'Fuente', 'Embed'];
-    
-    // Crear filas
-    const rows = [headers];
-    
-    news.forEach(item => {
-        const row = [
-            item.title,
-            item.description,
-            item.category,
-            item.country,
-            item.date,
-            item.priority,
-            item.image,
-            item.content,
-            item.source,
-            item.embedCode || ''
-        ];
-        rows.push(row);
-    });
-    
-    // Convertir a CSV
-    const csvContent = rows.map(row => 
-        row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
-    ).join('\n');
-    
-    // Crear y descargar archivo
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `noticias_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showFormStatus('✅ CSV generado. Ábrelo y copia todo el contenido a tu Google Sheets.', 'success');
+    try {
+        // Encabezados (deben coincidir con tu Google Sheets)
+        const headers = ['Título', 'Descripción', 'Categoría', 'País', 'Fecha', 'Prioridad', 'Imagen', 'Contenido', 'Fuente', 'Embed'];
+        
+        // Crear filas comenzando con encabezados
+        const rows = [headers];
+        
+        // Agregar cada noticia
+        news.forEach((item, index) => {
+            console.log(`📝 Procesando noticia ${index + 1}: ${item.title.substring(0, 30)}...`);
+            
+            const row = [
+                item.title || '',
+                item.description || '',
+                item.category || '',
+                item.country || '',
+                item.date || '',
+                item.priority || '',
+                item.image || '',
+                item.content || '',
+                item.source || '',
+                item.embedCode || ''
+            ];
+            
+            rows.push(row);
+        });
+        
+        // Convertir a CSV (formato correcto)
+        let csvContent = '';
+        rows.forEach(row => {
+            const escapedRow = row.map(cell => {
+                // Escapar comillas dobles
+                let escaped = String(cell).replace(/"/g, '""');
+                // Si tiene comas, saltos de línea o comillas, encerrar en comillas
+                if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')) {
+                    escaped = `"${escaped}"`;
+                }
+                return escaped;
+            });
+            csvContent += escapedRow.join(',') + '\r\n';
+        });
+        
+        console.log('✅ CSV generado, longitud:', csvContent.length, 'caracteres');
+        
+        // Crear y descargar archivo
+        const blob = new Blob(['\ufeff' + csvContent], { 
+            type: 'text/csv;charset=utf-8;' 
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `noticias_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Liberar memoria
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        
+        // Mostrar mensaje de éxito
+        const successMsg = `✅ CSV exportado correctamente.<br><br>
+            <strong>Archivo descargado:</strong> noticias_${new Date().toISOString().split('T')[0]}.csv<br><br>
+            <strong>Para subir a Google Sheets:</strong><br>
+            1. Abre tu Google Sheets<br>
+            2. Ve a "Archivo" → "Importar" → "Subir"<br>
+            3. Selecciona el archivo CSV descargado<br>
+            4. Elige "Reemplazar hoja de cálculo"<br>
+            5. ¡Listo! Tus noticias estarán en Google Sheets`;
+        
+        // Mostrar en el panel admin
+        const formStatus = document.getElementById('form-status');
+        if (formStatus) {
+            formStatus.innerHTML = `
+                <div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin-top: 20px; color: #155724;">
+                    ${successMsg}
+                </div>
+            `;
+        }
+        
+        // También mostrar alerta
+        alert(`✅ CSV exportado correctamente.\n\nSe descargó el archivo: noticias_${new Date().toISOString().split('T')[0]}.csv\n\nAbre Google Sheets y sube este archivo para sincronizar.`);
+        
+    } catch (error) {
+        console.error('❌ Error al exportar CSV:', error);
+        alert(`❌ Error al exportar CSV: ${error.message}`);
+        
+        // Mostrar error en el panel
+        const formStatus = document.getElementById('form-status');
+        if (formStatus) {
+            formStatus.innerHTML = `
+                <div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px; margin-top: 20px; color: #721c24;">
+                    ❌ Error al exportar CSV: ${error.message}
+                </div>
+            `;
+        }
+    }
 }
 
 // =============== PERSISTENCIA LOCAL (BACKUP) ===============
@@ -891,7 +955,7 @@ function setupAdmin() {
     setupAddNewsForm();
     setupEditNewsForm();
     
-    // Sincronización
+    // Sincronización - ¡ESTA ES LA PARTE IMPORTANTE!
     setupSyncFunctions();
     
     // Configuración
@@ -1161,11 +1225,16 @@ function setupEditNewsForm() {
     }
 }
 
+// =============== SINCRO FUNCTIONS - ¡CORREGIDO! ===============
 function setupSyncFunctions() {
+    console.log('🔄 Configurando funciones de sincronización...');
+    
     // Sincronizar ahora (solo lectura desde Google Sheets)
     const syncBtn = document.getElementById('sync-now-btn');
     if (syncBtn) {
+        console.log('✅ Botón sincronizar encontrado');
         syncBtn.addEventListener('click', function() {
+            console.log('🔄 Clic en botón sincronizar');
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
             this.disabled = true;
             
@@ -1176,19 +1245,57 @@ function setupSyncFunctions() {
                 this.disabled = false;
             }, 2000);
         });
+    } else {
+        console.error('❌ Botón sync-now-btn NO encontrado');
     }
     
-    // Exportar a CSV (para pegar en Google Sheets)
+    // ¡¡¡EXPORTAR A CSV - ESTA ES LA PARTE CRÍTICA CORREGIDA!!!
     const exportBtn = document.getElementById('export-news-btn');
     if (exportBtn) {
-        exportBtn.addEventListener('click', function() {
+        console.log('✅ Botón exportar encontrado, agregando event listener...');
+        
+        // Agregar event listener CORRECTAMENTE
+        exportBtn.addEventListener('click', function(e) {
+            console.log('🔄 Clic en botón exportar CSV');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Cambiar texto del botón mientras procesa
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando CSV...';
+            this.disabled = true;
+            
+            // Llamar a la función de exportación
             exportAllToCSV();
+            
+            // Restaurar botón después de 2 segundos
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }, 2000);
         });
+        
+        // También hacerlo disponible globalmente por si acaso
+        window.exportCSV = function() {
+            exportAllToCSV();
+        };
+        
+    } else {
+        console.error('❌ Botón export-news-btn NO encontrado');
+        // Intentar encontrarlo de otra manera
+        setTimeout(() => {
+            const exportBtn2 = document.getElementById('export-news-btn');
+            if (exportBtn2) {
+                console.log('✅ Botón exportar encontrado en segundo intento');
+                exportBtn2.addEventListener('click', exportAllToCSV);
+            }
+        }, 1000);
     }
     
     // Actualizar lista local
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
+        console.log('✅ Botón refrescar encontrado');
         refreshBtn.addEventListener('click', function() {
             renderNews();
             loadAdminNews();
@@ -1487,12 +1594,24 @@ window.clearSearch = function() {
     renderNews();
 };
 
+// Hacer las funciones disponibles globalmente
 window.exportAllToCSV = exportAllToCSV;
 window.openNewsModal = openNewsModal;
 window.closeModal = closeModal;
 window.copyEmbedCode = copyEmbedCode;
 window.showEmbedPreview = showEmbedPreview;
 window.testEmbed = testEmbed;
-window.showFullEmbed = showEmbedPreview; // Alias
+window.showFullEmbed = showEmbedPreview;
 window.clearSearch = clearSearch;
 window.showAdminPanel = showAdminPanel;
+
+// Función de prueba para verificar que el botón funciona
+window.testExport = function() {
+    console.log('🧪 Probando exportación...');
+    console.log('Noticias:', news.length);
+    if (news.length > 0) {
+        exportAllToCSV();
+    } else {
+        alert('Agrega noticias primero para probar la exportación');
+    }
+};
