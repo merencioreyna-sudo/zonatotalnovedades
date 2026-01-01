@@ -1,7 +1,7 @@
-// CONFIGURACIÓN DE GOOGLE SHEETS
+// CONFIGURACIÓN DE GOOGLE SHEETS (CSV público)
 const GOOGLE_SHEETS_ID = '1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ';
-const SHEET_ID = '1201067322';
-const GOOGLE_SHEETS_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_ID}`;
+const SHEET_GID = '1201067322'; // El gid de tu hoja
+const GOOGLE_SHEETS_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=${SHEET_GID}`;
 
 // Variables globales
 let news = [];
@@ -24,71 +24,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Cargar noticias desde Google Sheets
     loadNewsFromGoogleSheets();
+    
+    // Configurar el botón "Cargar más"
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMoreNews);
+    }
 });
-
-function initNavigation() {
-    const hamburger = document.querySelector('.hamburger');
-    const navMenu = document.querySelector('.nav-menu');
-    
-    if (hamburger && navMenu) {
-        hamburger.addEventListener('click', () => {
-            hamburger.classList.toggle('active');
-            navMenu.classList.toggle('active');
-        });
-        
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                hamburger.classList.remove('active');
-                navMenu.classList.remove('active');
-            });
-        });
-    }
-}
-
-function initSearch() {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            searchQuery = e.target.value.toLowerCase();
-            filterNews();
-            renderNews();
-        });
-    }
-    
-    const retryBtn = document.getElementById('retry-load-btn');
-    if (retryBtn) {
-        retryBtn.addEventListener('click', loadNewsFromGoogleSheets);
-    }
-}
-
-function initModal() {
-    const modalClose = document.getElementById('modal-close');
-    const closeModalBtn = document.getElementById('close-modal-btn');
-    const newsModal = document.getElementById('news-modal');
-    
-    if (modalClose) modalClose.addEventListener('click', closeNewsModal);
-    if (closeModalBtn) closeModalBtn.addEventListener('click', closeNewsModal);
-    
-    if (newsModal) {
-        newsModal.addEventListener('click', (e) => {
-            if (e.target === newsModal) closeNewsModal();
-        });
-    }
-    
-    const shareBtn = document.getElementById('share-btn');
-    if (shareBtn) {
-        shareBtn.addEventListener('click', shareNews);
-    }
-}
 
 // =============== CARGAR NOTICIAS DESDE GOOGLE SHEETS ===============
 async function loadNewsFromGoogleSheets() {
     showLoading(true);
     
     try {
-        // Usar proxy para evitar problemas CORS
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        const response = await fetch(proxyUrl + GOOGLE_SHEETS_URL);
+        // Usar un proxy CORS para evitar problemas
+        const proxyUrl = 'https://corsproxy.io/?';
+        const response = await fetch(proxyUrl + encodeURIComponent(GOOGLE_SHEETS_CSV_URL));
         
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
@@ -97,9 +48,12 @@ async function loadNewsFromGoogleSheets() {
         const csvText = await response.text();
         parseNewsFromCSV(csvText);
         
+        showLoading(false);
+        
     } catch (error) {
         console.error('Error cargando Google Sheets:', error);
-        showError('No se pudieron cargar las noticias. Verifica la conexión o el enlace de Google Sheets.');
+        showError('No se pudieron cargar las noticias. Verifica la conexión.');
+        showLoading(false);
     }
 }
 
@@ -109,96 +63,49 @@ function parseNewsFromCSV(csvText) {
         const rows = csvText.split('\n').filter(row => row.trim() !== '');
         
         if (rows.length <= 1) {
-            showError('No hay noticias en el Google Sheets. Agrega noticias primero.');
+            showError('No hay noticias en Google Sheets. Agrega noticias desde el panel Admin.');
             return;
         }
         
         // Obtener encabezados (primera fila)
-        const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        const headers = parseCSVRow(rows[0]);
         
         // Parsear cada fila de noticias
         news = [];
         categories = new Set();
         
         for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            const values = parseCSVRow(row);
+            const values = parseCSVRow(rows[i]);
             
-            if (values.length >= headers.length) {
-                const newsItem = {};
+            if (values.length >= 3) { // Al menos título, descripción y categoría
+                const newsItem = {
+                    id: i,
+                    title: values[0] || `Noticia ${i}`,
+                    description: values[1] || '',
+                    category: values[2] || 'General',
+                    country: values[3] || '',
+                    date: values[4] || new Date().toLocaleDateString('es-ES'),
+                    priority: parseInt(values[5]) || 1,
+                    image: values[6] || getDefaultImage(values[2]),
+                    content: values[7] || values[1] || 'Contenido no disponible.',
+                    source: values[8] || 'Zona Total',
+                    excerpt: generateExcerpt(values[1] || values[7], 150),
+                    active: true
+                };
                 
-                // Mapear valores a propiedades según encabezados
-                headers.forEach((header, index) => {
-                    if (values[index]) {
-                        // Limpiar el valor
-                        let value = values[index].trim().replace(/"/g, '');
-                        
-                        // Asignar según el nombre de la columna esperado
-                        switch(header.toLowerCase()) {
-                            case 'id':
-                            case 'numero':
-                                newsItem.id = parseInt(value) || i;
-                                break;
-                            case 'titulo':
-                            case 'title':
-                                newsItem.title = value;
-                                break;
-                            case 'contenido':
-                            case 'content':
-                            case 'descripcion':
-                                newsItem.content = value;
-                                break;
-                            case 'categoria':
-                            case 'category':
-                                newsItem.category = value;
-                                categories.add(value);
-                                break;
-                            case 'fecha':
-                            case 'date':
-                                newsItem.date = value;
-                                break;
-                            case 'autor':
-                            case 'author':
-                                newsItem.author = value || 'Redacción Zona Total';
-                                break;
-                            case 'imagen':
-                            case 'image':
-                            case 'url':
-                                newsItem.image = value || getDefaultImage(newsItem.category);
-                                break;
-                            case 'resumen':
-                            case 'excerpt':
-                                newsItem.excerpt = value || generateExcerpt(newsItem.content, 150);
-                                break;
-                            case 'activo':
-                            case 'active':
-                                newsItem.active = value.toLowerCase() !== 'false';
-                                break;
-                        }
-                    }
-                });
-                
-                // Asegurar que tenemos los campos mínimos
-                if (!newsItem.id) newsItem.id = i;
-                if (!newsItem.title) newsItem.title = `Noticia ${i}`;
-                if (!newsItem.content) newsItem.content = 'Contenido no disponible.';
-                if (!newsItem.category) newsItem.category = 'General';
-                if (!newsItem.date) newsItem.date = new Date().toLocaleDateString('es-ES');
-                if (!newsItem.author) newsItem.author = 'Redacción Zona Total';
-                if (!newsItem.image) newsItem.image = getDefaultImage(newsItem.category);
-                if (!newsItem.excerpt) newsItem.excerpt = generateExcerpt(newsItem.content, 150);
-                if (newsItem.active === undefined) newsItem.active = true;
-                
-                if (newsItem.active) {
-                    news.push(newsItem);
-                }
+                news.push(newsItem);
+                categories.add(newsItem.category);
             }
         }
         
         console.log(`Cargadas ${news.length} noticias de Google Sheets`);
         
-        // Ordenar por fecha (más reciente primero)
+        // Ordenar por prioridad y fecha
         news.sort((a, b) => {
+            if (b.priority !== a.priority) {
+                return b.priority - a.priority;
+            }
+            
             try {
                 const dateA = new Date(a.date.split('/').reverse().join('-'));
                 const dateB = new Date(b.date.split('/').reverse().join('-'));
@@ -216,58 +123,52 @@ function parseNewsFromCSV(csvText) {
         updateNewsCount();
         updateAdminStats();
         
-        showLoading(false);
-        
     } catch (error) {
         console.error('Error parseando CSV:', error);
-        showError('Error procesando los datos de Google Sheets. Verifica el formato.');
+        showError('Error procesando los datos. Verifica el formato de Google Sheets.');
     }
 }
 
 function parseCSVRow(row) {
     const values = [];
-    let currentValue = '';
-    let insideQuotes = false;
+    let current = '';
+    let inQuotes = false;
     
     for (let i = 0; i < row.length; i++) {
         const char = row[i];
         const nextChar = row[i + 1];
         
         if (char === '"') {
-            if (insideQuotes && nextChar === '"') {
-                // Comilla doble escapada
-                currentValue += '"';
-                i++; // Saltar la siguiente comilla
+            if (inQuotes && nextChar === '"') {
+                current += '"';
+                i++;
             } else {
-                // Comilla simple
-                insideQuotes = !insideQuotes;
+                inQuotes = !inQuotes;
             }
-        } else if (char === ',' && !insideQuotes) {
-            // Fin del valor
-            values.push(currentValue);
-            currentValue = '';
+        } else if (char === ',' && !inQuotes) {
+            values.push(current);
+            current = '';
         } else {
-            currentValue += char;
+            current += char;
         }
     }
     
-    // Añadir el último valor
-    values.push(currentValue);
-    
+    values.push(current);
     return values;
 }
 
 function getDefaultImage(category) {
     const categoryImages = {
         'Política': 'https://images.unsplash.com/photo-1551135049-8a33b2fb2f7f?w=800&q=80',
-        'Deportes': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w-800&q-80',
-        'Economía': 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w-800&q-80',
-        'Tecnología': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w-800&q-80',
-        'Entretenimiento': 'https://images.unsplash.com/photo-1492684223066-dd23140edf6d?w-800&q-80',
-        'Salud': 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w-800&q-80'
+        'Deportes': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80',
+        'Economía': 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80',
+        'Tecnología': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&q=80',
+        'Entretenimiento': 'https://images.unsplash.com/photo-1492684223066-dd23140edf6d?w=800&q=80',
+        'Salud': 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&q=80',
+        'General': 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&q=80'
     };
     
-    return categoryImages[category] || 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&q=80';
+    return categoryImages[category] || categoryImages['General'];
 }
 
 function generateExcerpt(text, maxLength) {
@@ -277,41 +178,129 @@ function generateExcerpt(text, maxLength) {
     return text.substring(0, maxLength) + '...';
 }
 
-// =============== RENDERIZAR INTERFAZ ===============
-function updateCategories() {
-    categories = Array.from(categories).sort();
-    
-    const filterButtons = document.getElementById('filter-buttons');
-    if (filterButtons) {
-        // Mantener el botón "Todas"
-        const existingButtons = filterButtons.querySelectorAll('.filter-btn');
-        existingButtons.forEach(btn => {
-            if (btn.dataset.category !== 'todas') {
-                btn.remove();
-            }
-        });
+// =============== AGREGAR NOTICIA A GOOGLE SHEETS ===============
+async function addNewsToGoogleSheets(newsData) {
+    try {
+        // Convertir a formato CSV
+        const csvRow = [
+            `"${newsData.title.replace(/"/g, '""')}"`,
+            `"${newsData.description.replace(/"/g, '""')}"`,
+            `"${newsData.category}"`,
+            `"${newsData.country}"`,
+            `"${newsData.date}"`,
+            `"${newsData.priority}"`,
+            `"${newsData.image}"`,
+            `"${newsData.content.replace(/"/g, '""')}"`,
+            `"${newsData.source}"`
+        ].join(',');
         
-        // Agregar botones para cada categoría
-        categories.forEach(category => {
-            const button = document.createElement('button');
-            button.className = 'filter-btn';
-            button.textContent = category;
-            button.dataset.category = category.toLowerCase().replace(/ /g, '-');
+        // Para agregar a Google Sheets necesitamos usar Google Apps Script
+        // Como alternativa, guardamos en localStorage y mostramos mensaje
+        saveNewsToLocalStorage(newsData);
+        
+        return {
+            success: true,
+            message: 'Noticia agregada localmente. Para guardar en Google Sheets, copia manualmente los datos.',
+            data: newsData
+        };
+        
+    } catch (error) {
+        console.error('Error agregando noticia:', error);
+        return {
+            success: false,
+            message: 'Error al agregar noticia'
+        };
+    }
+}
+
+function saveNewsToLocalStorage(newsData) {
+    try {
+        // Obtener noticias existentes
+        let localNews = JSON.parse(localStorage.getItem('zona_total_news')) || [];
+        
+        // Agregar nueva noticia
+        newsData.id = Date.now(); // ID único basado en timestamp
+        localNews.push(newsData);
+        
+        // Guardar en localStorage
+        localStorage.setItem('zona_total_news', JSON.stringify(localNews));
+        
+        // Actualizar lista de noticias
+        news = [...news, newsData];
+        categories.add(newsData.category);
+        
+        // Actualizar interfaz
+        updateCategories();
+        filterNews();
+        renderNews();
+        renderCategories();
+        updateNewsCount();
+        updateAdminStats();
+        
+        return true;
+    } catch (error) {
+        console.error('Error guardando en localStorage:', error);
+        return false;
+    }
+}
+
+function loadNewsFromLocalStorage() {
+    try {
+        const localNews = JSON.parse(localStorage.getItem('zona_total_news')) || [];
+        
+        if (localNews.length > 0) {
+            // Combinar con noticias de Google Sheets
+            news = [...news, ...localNews];
             
-            button.addEventListener('click', () => {
-                currentCategory = category;
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                button.classList.add('active');
-                currentPage = 1;
-                filterNews();
-                renderNews();
+            // Agregar categorías
+            localNews.forEach(item => {
+                if (item.category) {
+                    categories.add(item.category);
+                }
             });
             
-            filterButtons.appendChild(button);
-        });
+            return true;
+        }
+    } catch (error) {
+        console.error('Error cargando de localStorage:', error);
     }
+    
+    return false;
+}
+
+// =============== RENDERIZAR INTERFAZ ===============
+function updateCategories() {
+    const filterButtons = document.getElementById('filter-buttons');
+    if (!filterButtons) return;
+    
+    // Mantener solo el botón "Todas"
+    const existingButtons = filterButtons.querySelectorAll('.filter-btn');
+    existingButtons.forEach(btn => {
+        if (btn.dataset.category !== 'todas') {
+            btn.remove();
+        }
+    });
+    
+    // Agregar botones para cada categoría
+    Array.from(categories).sort().forEach(category => {
+        const button = document.createElement('button');
+        button.className = 'filter-btn';
+        button.textContent = category;
+        button.dataset.category = category.toLowerCase().replace(/ /g, '-');
+        
+        button.addEventListener('click', () => {
+            currentCategory = category;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
+            currentPage = 1;
+            filterNews();
+            renderNews();
+        });
+        
+        filterButtons.appendChild(button);
+    });
 }
 
 function filterNews() {
@@ -323,7 +312,7 @@ function filterNews() {
         
         // Filtrar por búsqueda
         if (searchQuery) {
-            const searchText = (item.title + ' ' + item.content + ' ' + item.category).toLowerCase();
+            const searchText = (item.title + ' ' + item.description + ' ' + item.content + ' ' + item.category).toLowerCase();
             return searchText.includes(searchQuery);
         }
         
@@ -343,18 +332,24 @@ function renderNews() {
     // Si no hay noticias
     if (filteredNews.length === 0) {
         newsGrid.innerHTML = `
-            <div class="no-news">
-                <i class="fas fa-newspaper"></i>
-                <h3>No se encontraron noticias</h3>
-                <p>${searchQuery ? 'Prueba con otros términos de búsqueda.' : 'No hay noticias disponibles en esta categoría.'}</p>
+            <div class="no-news" style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
+                <i class="fas fa-newspaper" style="font-size: 4rem; color: var(--accent-orange); margin-bottom: 20px; opacity: 0.7;"></i>
+                <h3 style="color: var(--text-color); margin-bottom: 15px;">No se encontraron noticias</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 25px;">
+                    ${searchQuery ? 'Prueba con otros términos de búsqueda.' : 'No hay noticias disponibles.'}
+                </p>
                 ${searchQuery ? 
-                    '<button onclick="clearSearch()" class="btn btn-primary">Limpiar búsqueda</button>' : 
+                    '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 10px;">Limpiar búsqueda</button>' : 
                     ''
                 }
+                <button onclick="location.reload()" class="btn btn-secondary" style="margin: 10px;">
+                    <i class="fas fa-redo"></i> Recargar
+                </button>
             </div>
         `;
         
-        document.getElementById('load-more-btn').style.display = 'none';
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
         return;
     }
     
@@ -371,7 +366,6 @@ function renderNews() {
     if (loadMoreBtn) {
         if (endIndex < filteredNews.length) {
             loadMoreBtn.style.display = 'inline-block';
-            loadMoreBtn.onclick = loadMoreNews;
         } else {
             loadMoreBtn.style.display = 'none';
         }
@@ -387,20 +381,22 @@ function createNewsCard(newsItem) {
     newsCard.innerHTML = `
         <div class="news-image">
             <img src="${newsItem.image}" alt="${newsItem.title}" 
-                 onerror="this.src='https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&q=80'">
+                 onerror="this.src='${getDefaultImage(newsItem.category)}'">
             <div class="news-category">${newsItem.category}</div>
+            ${newsItem.priority > 1 ? `<div class="news-priority">Destacado</div>` : ''}
         </div>
         <div class="news-content">
             <div class="news-header">
                 <h3 class="news-title">${newsItem.title}</h3>
                 <div class="news-date">${newsItem.date}</div>
             </div>
-            <p class="news-excerpt">${newsItem.excerpt}</p>
+            <p class="news-excerpt">${newsItem.excerpt || newsItem.description}</p>
             <div class="news-meta">
                 <div class="news-author">
                     <i class="fas fa-user"></i>
-                    <span>${newsItem.author}</span>
+                    <span>${newsItem.source}</span>
                 </div>
+                ${newsItem.country ? `<div class="news-country"><i class="fas fa-globe"></i> ${newsItem.country}</div>` : ''}
             </div>
             <div class="news-actions">
                 <button class="btn btn-primary read-more-btn" data-id="${newsItem.id}">
@@ -480,111 +476,7 @@ function renderCategories() {
     });
 }
 
-function updateNewsCount() {
-    const totalNewsElement = document.getElementById('total-news');
-    if (totalNewsElement) {
-        totalNewsElement.textContent = news.length;
-    }
-}
-
-// =============== MODAL DE NOTICIAS ===============
-function openNewsModal(newsItem) {
-    const newsModal = document.getElementById('news-modal');
-    const modalNewsTitle = document.getElementById('modal-news-title');
-    const modalNewsContent = document.getElementById('modal-news-content');
-    
-    if (!newsModal || !modalNewsTitle || !modalNewsContent) return;
-    
-    modalNewsTitle.textContent = newsItem.title;
-    
-    modalNewsContent.innerHTML = `
-        <div class="modal-news-content">
-            <div class="modal-meta">
-                <div class="modal-category">${newsItem.category}</div>
-                <div><i class="fas fa-calendar"></i> ${newsItem.date}</div>
-                <div><i class="fas fa-user"></i> ${newsItem.author}</div>
-            </div>
-            
-            ${newsItem.image ? `
-                <div class="modal-image">
-                    <img src="${newsItem.image}" alt="${newsItem.title}"
-                         onerror="this.style.display='none'">
-                </div>
-            ` : ''}
-            
-            <div class="modal-body">
-                ${newsItem.content.split('\n').map(paragraph => 
-                    `<p>${paragraph}</p>`
-                ).join('')}
-            </div>
-        </div>
-    `;
-    
-    newsModal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    
-    // Guardar noticia actual para compartir
-    window.currentNewsItem = newsItem;
-}
-
-function closeNewsModal() {
-    const newsModal = document.getElementById('news-modal');
-    if (newsModal) {
-        newsModal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-}
-
-function shareNews() {
-    if (!window.currentNewsItem) return;
-    
-    const newsItem = window.currentNewsItem;
-    const shareText = `Lee "${newsItem.title}" en Zona Total Noticias`;
-    const shareUrl = window.location.href;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: newsItem.title,
-            text: shareText,
-            url: shareUrl
-        });
-    } else {
-        // Fallback para navegadores que no soportan Web Share API
-        navigator.clipboard.writeText(`${shareText}: ${shareUrl}`);
-        alert('Enlace copiado al portapapeles');
-    }
-}
-
-// =============== FUNCIONALIDADES ADICIONALES ===============
-function loadMoreNews() {
-    currentPage++;
-    renderNews();
-    
-    // Scroll suave a las nuevas noticias
-    const newsGrid = document.getElementById('news-grid');
-    if (newsGrid && newsGrid.lastElementChild) {
-        newsGrid.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-}
-
-function clearSearch() {
-    searchQuery = '';
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) searchInput.value = '';
-    currentCategory = 'todas';
-    
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.category === 'todas') {
-            btn.classList.add('active');
-        }
-    });
-    
-    filterNews();
-    renderNews();
-}
-
-// =============== ADMIN ===============
+// =============== FUNCIONALIDADES DEL ADMIN ===============
 function initAdmin() {
     // Botón Admin
     const adminAccessBtn = document.getElementById('admin-access-btn');
@@ -594,23 +486,16 @@ function initAdmin() {
             document.getElementById('admin-overlay').style.display = 'flex';
             document.body.style.overflow = 'hidden';
             updateAdminStats();
+            renderAdminNewsList();
         });
     }
     
-    // Login
+    // Login (simplificado para demostración)
     const loginBtn = document.getElementById('login-btn');
     if (loginBtn) {
         loginBtn.addEventListener('click', () => {
-            const username = document.getElementById('admin-username').value;
-            const password = document.getElementById('admin-password').value;
-            
-            if (username === 'admin' && password === 'admin123') {
-                document.getElementById('admin-login').style.display = 'none';
-                document.getElementById('admin-panel').style.display = 'block';
-                renderAdminNewsList();
-            } else {
-                alert('Credenciales: admin / admin123');
-            }
+            document.getElementById('admin-login').style.display = 'none';
+            document.getElementById('admin-panel').style.display = 'block';
         });
     }
     
@@ -650,12 +535,87 @@ function initAdmin() {
         });
     });
     
+    // Formulario para agregar noticia
+    const addNewsForm = document.getElementById('add-news-form');
+    if (addNewsForm) {
+        addNewsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const newsData = {
+                title: document.getElementById('news-title').value,
+                description: document.getElementById('news-description').value,
+                category: document.getElementById('news-category').value,
+                country: document.getElementById('news-country').value,
+                date: document.getElementById('news-date').value || new Date().toLocaleDateString('es-ES'),
+                priority: parseInt(document.getElementById('news-priority').value) || 1,
+                image: document.getElementById('news-image').value || getDefaultImage(document.getElementById('news-category').value),
+                content: document.getElementById('news-content').value,
+                source: document.getElementById('news-source').value || 'Zona Total'
+            };
+            
+            // Validar campos requeridos
+            if (!newsData.title || !newsData.description || !newsData.category) {
+                alert('Por favor, completa los campos obligatorios: Título, Descripción y Categoría');
+                return;
+            }
+            
+            // Mostrar mensaje de procesamiento
+            const statusDiv = document.getElementById('form-status');
+            statusDiv.innerHTML = '<div class="processing"><i class="fas fa-spinner fa-spin"></i> Agregando noticia...</div>';
+            
+            // Agregar noticia
+            const result = await addNewsToGoogleSheets(newsData);
+            
+            if (result.success) {
+                statusDiv.innerHTML = `<div class="success">
+                    <i class="fas fa-check-circle"></i> ${result.message}
+                    <p><strong>Para guardar en Google Sheets:</strong></p>
+                    <p>1. Abre tu Google Sheets</p>
+                    <p>2. Agrega una nueva fila con estos datos:</p>
+                    <pre style="background: #2c2c2c; padding: 10px; border-radius: 4px; margin: 10px 0;">
+${newsData.title}
+${newsData.description}
+${newsData.category}
+${newsData.country}
+${newsData.date}
+${newsData.priority}
+${newsData.image}
+${newsData.content}
+${newsData.source}</pre>
+                </div>`;
+                
+                // Limpiar formulario
+                addNewsForm.reset();
+                
+                // Actualizar lista de noticias en admin
+                setTimeout(() => {
+                    renderAdminNewsList();
+                    updateAdminStats();
+                }, 500);
+                
+            } else {
+                statusDiv.innerHTML = `<div class="error">
+                    <i class="fas fa-exclamation-triangle"></i> ${result.message}
+                </div>`;
+            }
+        });
+    }
+    
     // Actualizar noticias
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
             loadNewsFromGoogleSheets();
-            alert('Noticias actualizadas desde Google Sheets');
+            alert('Noticias actualizadas');
+        });
+    }
+    
+    // Abrir Google Sheets
+    const openSheetsBtn = document.querySelector('[href*="docs.google.com"]');
+    if (openSheetsBtn) {
+        openSheetsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(e.target.href || e.target.parentElement.href, '_blank');
         });
     }
 }
@@ -672,7 +632,7 @@ function renderAdminNewsList() {
     adminNewsList.innerHTML = '';
     
     if (recentNews.length === 0) {
-        adminNewsList.innerHTML = '<p class="no-news-admin">No hay noticias disponibles.</p>';
+        adminNewsList.innerHTML = '<div class="no-news-admin"><p>No hay noticias disponibles.</p></div>';
         if (newsCount) newsCount.textContent = '0 noticias';
         return;
     }
@@ -691,7 +651,7 @@ function renderAdminNewsList() {
                 <div class="admin-news-date">${newsItem.date}</div>
             </div>
             <div class="admin-news-category">${newsItem.category}</div>
-            <div class="admin-news-excerpt">${newsItem.excerpt}</div>
+            <div class="admin-news-excerpt">${newsItem.excerpt || newsItem.description.substring(0, 100)}...</div>
         `;
         
         adminNewsList.appendChild(newsElement);
@@ -708,11 +668,119 @@ function updateAdminStats() {
     }
     
     if (totalCategoriesElement) {
-        totalCategoriesElement.textContent = categories.length;
+        totalCategoriesElement.textContent = categories.size;
     }
     
     if (lastUpdateElement) {
         lastUpdateElement.textContent = new Date().toLocaleTimeString('es-ES');
+    }
+}
+
+// =============== FUNCIONES AUXILIARES ===============
+function initNavigation() {
+    const hamburger = document.querySelector('.hamburger');
+    const navMenu = document.querySelector('.nav-menu');
+    
+    if (hamburger && navMenu) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
+        
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('active');
+            });
+        });
+    }
+}
+
+function initSearch() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase();
+            currentPage = 1;
+            filterNews();
+            renderNews();
+        });
+    }
+    
+    const retryBtn = document.getElementById('retry-load-btn');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', loadNewsFromGoogleSheets);
+    }
+}
+
+function initModal() {
+    const modalClose = document.getElementById('modal-close');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const newsModal = document.getElementById('news-modal');
+    
+    if (modalClose) modalClose.addEventListener('click', closeNewsModal);
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeNewsModal);
+    
+    if (newsModal) {
+        newsModal.addEventListener('click', (e) => {
+            if (e.target === newsModal) closeNewsModal();
+        });
+    }
+    
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', shareNews);
+    }
+}
+
+function openNewsModal(newsItem) {
+    const newsModal = document.getElementById('news-modal');
+    const modalNewsTitle = document.getElementById('modal-news-title');
+    const modalNewsContent = document.getElementById('modal-news-content');
+    
+    if (!newsModal || !modalNewsTitle || !modalNewsContent) return;
+    
+    modalNewsTitle.textContent = newsItem.title;
+    
+    modalNewsContent.innerHTML = `
+        <div class="modal-news-content">
+            <div class="modal-meta">
+                <div class="modal-category">${newsItem.category}</div>
+                <div><i class="fas fa-calendar"></i> ${newsItem.date}</div>
+                <div><i class="fas fa-user"></i> ${newsItem.source}</div>
+                ${newsItem.country ? `<div><i class="fas fa-globe"></i> ${newsItem.country}</div>` : ''}
+            </div>
+            
+            <div class="modal-image">
+                <img src="${newsItem.image}" alt="${newsItem.title}"
+                     onerror="this.src='${getDefaultImage(newsItem.category)}'">
+            </div>
+            
+            <div class="modal-body">
+                ${newsItem.content.split('\n').map(paragraph => 
+                    `<p>${paragraph}</p>`
+                ).join('')}
+                
+                ${newsItem.description ? `
+                    <div class="modal-summary">
+                        <h4>Resumen:</h4>
+                        <p>${newsItem.description}</p>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    newsModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    window.currentNewsItem = newsItem;
+}
+
+function closeNewsModal() {
+    const newsModal = document.getElementById('news-modal');
+    if (newsModal) {
+        newsModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
     }
 }
 
@@ -721,7 +789,44 @@ function closeAdminPanel() {
     document.body.style.overflow = 'auto';
 }
 
-// =============== UTILIDADES ===============
+function updateNewsCount() {
+    const totalNewsElement = document.getElementById('total-news');
+    if (totalNewsElement) {
+        totalNewsElement.textContent = news.length;
+    }
+}
+
+function loadMoreNews() {
+    currentPage++;
+    renderNews();
+    
+    // Scroll suave a las nuevas noticias
+    const newsGrid = document.getElementById('news-grid');
+    if (newsGrid && newsGrid.lastElementChild) {
+        newsGrid.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function shareNews() {
+    if (!window.currentNewsItem) return;
+    
+    const newsItem = window.currentNewsItem;
+    const shareText = `Lee "${newsItem.title}" en Zona Total Noticias`;
+    const shareUrl = window.location.href;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: newsItem.title,
+            text: shareText,
+            url: shareUrl
+        });
+    } else {
+        // Fallback
+        navigator.clipboard.writeText(`${shareText}: ${shareUrl}`);
+        alert('Enlace copiado al portapapeles');
+    }
+}
+
 function showLoading(show) {
     const loadingElement = document.getElementById('loading-news');
     const errorElement = document.getElementById('error-news');
@@ -751,7 +856,24 @@ function showError(message) {
 }
 
 // =============== FUNCIONES GLOBALES ===============
-window.clearSearch = clearSearch;
+window.clearSearch = function() {
+    searchQuery = '';
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
+    currentCategory = 'todas';
+    
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.category === 'todas') {
+            btn.classList.add('active');
+        }
+    });
+    
+    currentPage = 1;
+    filterNews();
+    renderNews();
+};
+
 window.openNewsModal = openNewsModal;
 window.closeNewsModal = closeNewsModal;
 window.loadNewsFromGoogleSheets = loadNewsFromGoogleSheets;
