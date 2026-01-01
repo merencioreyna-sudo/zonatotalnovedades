@@ -3,1250 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zona Total - Noticias</title>
-    
-    <!-- Estilos CSS -->
-    <style>
-        /* ============================================
-           ESTILOS COMPLETOS - ZONA TOTAL NOTICIAS
-           ============================================ */
-        
-        /* Reset y estilos base */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            color: #333;
-            line-height: 1.6;
-        }
-        
-        /* Header */
-        header {
-            background: linear-gradient(135deg, #1a2980, #26d0ce);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 100%;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
-            background-size: cover;
-        }
-        
-        .logo-container {
-            position: relative;
-            z-index: 1;
-        }
-        
-        header h1 {
-            font-size: 2.8rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        /* Contadores */
-        .counters {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            padding: 30px 20px;
-            background: white;
-            margin: 30px auto;
-            max-width: 1200px;
-            border-radius: 20px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-            flex-wrap: wrap;
-        }
-        
-        .counter-item {
-            text-align: center;
-            padding: 15px 25px;
-            min-width: 150px;
-        }
-        
-        .counter-number {
-            display: block;
-            font-size: 3rem;
-            font-weight: 800;
-            color: #1a2980;
-            margin-bottom: 5px;
-        }
-        
-        .counter-label {
-            font-size: 1.1rem;
-            color: #666;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        /* Controles */
-        .controls {
-            max-width: 1200px;
-            margin: 0 auto 40px;
-            padding: 0 20px;
-        }
-        
-        .search-container {
-            display: flex;
-            max-width: 500px;
-            margin: 0 auto 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            border-radius: 50px;
-            overflow: hidden;
-        }
-        
-        #search-input {
-            flex-grow: 1;
-            padding: 18px 25px;
-            border: none;
-            font-size: 1.1rem;
-            outline: none;
-            background: white;
-        }
-        
-        #search-btn {
-            background: linear-gradient(135deg, #1a2980, #26d0ce);
-            color: white;
-            border: none;
-            padding: 0 35px;
-            font-size: 1.3rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        #search-btn:hover {
-            background: linear-gradient(135deg, #26d0ce, #1a2980);
-        }
-        
-        .filters {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .filter-btn {
-            background: white;
-            border: 2px solid #1a2980;
-            color: #1a2980;
-            padding: 12px 25px;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-        
-        .filter-btn:hover,
-        .filter-btn.active {
-            background: #1a2980;
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        /* Secciones */
-        section {
-            max-width: 1200px;
-            margin: 0 auto 60px;
-            padding: 0 20px;
-        }
-        
-        section h2 {
-            font-size: 2rem;
-            color: #1a2980;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid #26d0ce;
-            display: inline-block;
-        }
-        
-        /* Noticias Destacadas */
-        .featured-news {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-            margin-top: 20px;
-        }
-        
-        .featured-card {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-            border: 1px solid #eaeaea;
-            transition: all 0.4s ease;
-            height: 100%;
-        }
-        
-        .featured-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-        }
-        
-        .featured-image {
-            position: relative;
-            height: 250px;
-            overflow: hidden;
-        }
-        
-        .featured-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.6s ease;
-        }
-        
-        .featured-card:hover .featured-image img {
-            transform: scale(1.1);
-        }
-        
-        .featured-badge {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: linear-gradient(135deg, #ff6b6b, #ff4757);
-            color: white;
-            padding: 10px 25px;
-            border-radius: 30px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-        }
-        
-        .featured-content {
-            padding: 25px;
-        }
-        
-        .featured-title {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin: 15px 0;
-            color: #222;
-            line-height: 1.4;
-        }
-        
-        .featured-description {
-            color: #555;
-            font-size: 1rem;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-        
-        .featured-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-        }
-        
-        .read-more {
-            background: linear-gradient(135deg, #1a2980, #26d0ce);
-            color: white;
-            border: none;
-            padding: 14px 30px;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-        
-        .read-more:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(26, 41, 128, 0.3);
-        }
-        
-        .news-priority {
-            padding: 8px 18px;
-            border-radius: 25px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-        
-        .news-priority.alta {
-            background: linear-gradient(135deg, #ff6b6b, #ff4757);
-            color: white;
-        }
-        
-        .news-priority.media {
-            background: linear-gradient(135deg, #ffa726, #ff9800);
-            color: white;
-        }
-        
-        .news-priority.baja {
-            background: linear-gradient(135deg, #66bb6a, #4caf50);
-            color: white;
-        }
-        
-        /* Todas las noticias */
-        .news-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 30px;
-            margin-top: 20px;
-        }
-        
-        .news-card {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            border: 1px solid #eaeaea;
-            transition: all 0.3s ease;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .news-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-        }
-        
-        .news-image {
-            position: relative;
-            height: 200px;
-            overflow: hidden;
-        }
-        
-        .news-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-        
-        .news-card:hover .news-image img {
-            transform: scale(1.1);
-        }
-        
-        .category-badge {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 6px 18px;
-            border-radius: 25px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #1a2980;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .news-content {
-            padding: 20px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .news-meta {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .news-country {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        
-        .news-date {
-            color: #666;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        
-        .news-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin: 0 0 15px 0;
-            color: #222;
-            line-height: 1.4;
-            flex-grow: 1;
-        }
-        
-        .news-description {
-            color: #555;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin-bottom: 20px;
-            flex-grow: 1;
-        }
-        
-        .news-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: auto;
-        }
-        
-        .read-more-btn {
-            background: linear-gradient(135deg, #1a2980, #26d0ce);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-        }
-        
-        .read-more-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(26, 41, 128, 0.3);
-        }
-        
-        .priority-badge {
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-        
-        .priority-badge.alta {
-            background: #ffebee;
-            color: #d32f2f;
-        }
-        
-        .priority-badge.media {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-        
-        .priority-badge.baja {
-            background: #e8f5e9;
-            color: #388e3c;
-        }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 25px;
-            width: 100%;
-            max-width: 900px;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            animation: slideUp 0.4s ease;
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .modal-header {
-            padding: 30px;
-            border-bottom: 2px solid #f0f0f0;
-            position: sticky;
-            top: 0;
-            background: white;
-            z-index: 10;
-            border-radius: 25px 25px 0 0;
-        }
-        
-        .modal-meta {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .modal-category, .modal-country, .modal-date {
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: 0.95rem;
-            font-weight: 600;
-        }
-        
-        .modal-category {
-            background: #e3f2fd;
-            color: #1565c0;
-        }
-        
-        .modal-country {
-            background: #f3e5f5;
-            color: #7b1fa2;
-        }
-        
-        .modal-date {
-            background: #f5f5f5;
-            color: #666;
-        }
-        
-        .modal-priority {
-            padding: 8px 18px;
-            border-radius: 25px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        
-        .modal-priority.alta {
-            background: #ffebee;
-            color: #d32f2f;
-        }
-        
-        .modal-priority.media {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-        
-        .modal-priority.baja {
-            background: #e8f5e9;
-            color: #388e3c;
-        }
-        
-        .modal-title {
-            font-size: 2.2rem;
-            font-weight: 800;
-            margin: 0;
-            color: #222;
-            line-height: 1.3;
-            padding-right: 60px;
-        }
-        
-        .modal-close {
-            position: absolute;
-            top: 25px;
-            right: 25px;
-            background: none;
-            border: none;
-            font-size: 2.5rem;
-            color: #666;
-            cursor: pointer;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-        
-        .modal-close:hover {
-            background: #f5f5f5;
-            color: #333;
-            transform: rotate(90deg);
-        }
-        
-        .modal-body {
-            padding: 30px;
-        }
-        
-        .modal-image {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-        
-        .modal-description, .modal-full-content {
-            margin-bottom: 30px;
-        }
-        
-        .modal-description h3, .modal-full-content h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #1a2980;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #26d0ce;
-        }
-        
-        .modal-description p, .modal-full-content p {
-            font-size: 1.1rem;
-            line-height: 1.8;
-            color: #444;
-            margin-bottom: 20px;
-        }
-        
-        .modal-source {
-            padding: 25px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            border-left: 5px solid #1a2980;
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #555;
-        }
-        
-        .modal-source strong {
-            color: #1a2980;
-        }
-        
-        /* Mensajes */
-        .no-news-message, .error-message {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 80px 30px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            margin: 50px auto;
-            max-width: 600px;
-        }
-        
-        .no-news-message h3, .error-message h3 {
-            color: #666;
-            margin-bottom: 20px;
-            font-size: 2rem;
-        }
-        
-        .no-news-message p, .error-message p {
-            color: #888;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-        
-        .retry-btn {
-            margin-top: 30px;
-            background: linear-gradient(135deg, #1a2980, #26d0ce);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-        }
-        
-        .retry-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(26, 41, 128, 0.3);
-        }
-        
-        /* Animaciones */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .news-card, .featured-card {
-            animation: fadeInUp 0.6s ease;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            header h1 {
-                font-size: 2.2rem;
-            }
-            
-            .counters {
-                gap: 20px;
-                padding: 20px;
-            }
-            
-            .counter-item {
-                min-width: 120px;
-            }
-            
-            .counter-number {
-                font-size: 2.5rem;
-            }
-            
-            .featured-news,
-            .news-grid {
-                grid-template-columns: 1fr;
-                gap: 25px;
-            }
-            
-            .modal-content {
-                margin: 10px;
-                max-height: 95vh;
-            }
-            
-            .modal-title {
-                font-size: 1.8rem;
-                padding-right: 50px;
-            }
-            
-            .modal-body {
-                padding: 20px;
-            }
-            
-            section h2 {
-                font-size: 1.7rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .counter-number {
-                font-size: 2rem;
-            }
-            
-            .filter-btn {
-                padding: 10px 20px;
-                font-size: 0.9rem;
-            }
-            
-            #search-input {
-                padding: 15px 20px;
-                font-size: 1rem;
-            }
-        }
-        
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 30px;
-            color: #666;
-            font-size: 0.95rem;
-            background: white;
-            margin-top: 50px;
-            border-top: 1px solid #eee;
-        }
-        
-        /* Sincronización */
-        .sync-info {
-            text-align: center;
-            color: #666;
-            font-size: 0.9rem;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.8);
-            margin-top: 30px;
-            border-radius: 10px;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-    </style>
+    <title>Zona Total Noticias - Información al instante</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="logo-container">
-            <h1>Zona Total Noticias</h1>
-            <p>Noticias en tiempo real • Actualizadas automáticamente desde Google Sheets</p>
+    <!-- Header & Navigation -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                    <span class="logo-text">Zona Total</span>
+                </div>
+                
+                <ul class="nav-menu">
+                    <li><a href="#home" class="nav-link active">Inicio</a></li>
+                    <li><a href="#news" class="nav-link">Noticias</a></li>
+                    <li><a href="#categories" class="nav-link">Categorías</a></li>
+                    <li><a href="#contact" class="nav-link">Contacto</a></li>
+                    <li><a href="#" id="admin-access-btn" class="nav-link admin-access">
+                        <i class="fas fa-lock"></i> Admin
+                    </a></li>
+                </ul>
+                
+                <div class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </nav>
         </div>
     </header>
 
-    <!-- Contadores de noticias -->
-    <div class="counters">
-        <div class="counter-item">
-            <span class="counter-number" id="total-news">0</span>
-            <span class="counter-label">Noticias Totales</span>
-        </div>
-        <div class="counter-item">
-            <span class="counter-number" id="categories-count">0</span>
-            <span class="counter-label">Categorías</span>
-        </div>
-        <div class="counter-item">
-            <span class="counter-number" id="countries-count">0</span>
-            <span class="counter-label">Países</span>
-        </div>
-    </div>
-
-    <!-- Controles de búsqueda y filtros -->
-    <div class="controls">
-        <div class="search-container">
-            <input type="text" id="search-input" placeholder="🔍 Buscar noticias por título, categoría o país...">
-            <button id="search-btn">Buscar</button>
-        </div>
-        
-        <div class="filters">
-            <button class="filter-btn active" onclick="filterByCategory('all')">Todas las Noticias</button>
-            <button class="filter-btn" onclick="filterByCategory('Nacional')">Nacionales</button>
-            <button class="filter-btn" onclick="filterByCategory('Internacional')">Internacionales</button>
-            <button class="filter-btn" onclick="filterByCategory('Deportes')">Deportes</button>
-            <button class="filter-btn" onclick="filterByCategory('Cultura')">Cultura</button>
-        </div>
-    </div>
-
-    <!-- Noticias Destacadas -->
-    <section class="featured-section">
-        <h2>⭐ Noticias Destacadas</h2>
-        <div class="featured-news" id="featured-news">
-            <!-- Las noticias destacadas se cargan aquí automáticamente -->
-            <div class="no-news-message">
-                <h3>Cargando noticias destacadas...</h3>
-                <p>Las noticias con prioridad ALTA aparecerán aquí</p>
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Zona Total <span class="highlight">Noticias</span></h1>
+                <p class="hero-subtitle">Información al instante, noticias verificadas y cobertura completa de los eventos más importantes.</p>
+                
+                <div class="hero-buttons">
+                    <a href="#news" class="btn btn-primary">Ver Noticias</a>
+                    <a href="#categories" class="btn btn-secondary">Explorar Categorías</a>
+                </div>
+            </div>
+            
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-number" id="total-news">0</div>
+                    <div class="stat-text">Noticias Publicadas</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-text">Actualización</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-text">Verificado</div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Todas las Noticias -->
-    <section class="all-news-section">
-        <h2>📰 Todas las Noticias</h2>
-        <div class="news-grid" id="news-grid">
-            <!-- Todas las noticias se cargan aquí automáticamente -->
-            <div class="no-news-message">
-                <h3>Cargando noticias...</h3>
-                <p>Por favor espera mientras se cargan las noticias desde Google Sheets</p>
-                <div class="retry-btn" onclick="loadNews()">Reintentar Carga</div>
+    <!-- News Section -->
+    <section class="news-section" id="news">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Últimas Noticias</h2>
+                <p class="section-subtitle">Mantente informado con nuestras noticias más recientes</p>
+            </div>
+            
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-buttons" id="filter-buttons">
+                    <button class="filter-btn active" data-category="todas">Todas</button>
+                    <!-- Categories will be loaded from Google Sheets -->
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Buscar noticias...">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="loading-news" class="loading-state">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <p>Cargando noticias...</p>
+            </div>
+            
+            <!-- Error State -->
+            <div id="error-news" class="error-state" style="display: none;">
+                <div class="error-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error al cargar las noticias</h3>
+                    <p id="error-message"></p>
+                    <button class="btn btn-primary" id="retry-load-btn">Reintentar</button>
+                </div>
+            </div>
+            
+            <!-- News Grid -->
+            <div class="news-grid" id="news-grid">
+                <!-- News will be loaded dynamically from Google Sheets -->
+            </div>
+            
+            <!-- Load More Button -->
+            <div class="load-more-container">
+                <button class="btn btn-secondary" id="load-more-btn">
+                    <i class="fas fa-plus"></i> Cargar más noticias
+                </button>
             </div>
         </div>
     </section>
 
-    <!-- Información de sincronización -->
-    <div class="sync-info">
-        🔄 Sincronizado con Google Sheets • Se actualiza automáticamente cada 30 segundos
-    </div>
-
-    <!-- Modal para ver noticia completa -->
-    <div id="news-modal" class="modal">
-        <div class="modal-content">
-            <div id="modal-news-content">
-                <!-- El contenido de la noticia completa se carga aquí -->
+    <!-- Categories Section -->
+    <section class="categories-section" id="categories">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Categorías</h2>
+                <p class="section-subtitle">Explora noticias por temas de interés</p>
+            </div>
+            
+            <div class="categories-grid" id="categories-grid">
+                <!-- Categories will be loaded from Google Sheets -->
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Footer -->
-    <footer>
-        <p>Zona Total Noticias • Sistema de gestión de noticias mediante Google Sheets</p>
-        <p>© 2024 - Todas las noticias se cargan y actualizan automáticamente</p>
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3>Zona Total Noticias</h3>
+                    <p>Tu fuente confiable de información. Noticias verificadas y actualizadas minuto a minuto.</p>
+                </div>
+                
+                <div class="footer-info">
+                    <p><i class="fas fa-envelope"></i> contacto@zonatotal.com</p>
+                    <p><i class="fas fa-phone"></i> +1 (555) 987-6543</p>
+                    <p><i class="fas fa-map-marker-alt"></i> Av. Noticias 456, Ciudad Actualidad</p>
+                    <p><i class="fas fa-clock"></i> Actualización 24/7</p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Zona Total Noticias. Todos los derechos reservados.</p>
+                <p class="footer-note">Información verificada para lectores exigentes</p>
+            </div>
+        </div>
     </footer>
 
-    <!-- JavaScript -->
-    <script>
-        // ============================================
-        // SCRIPT COMPLETO - ZONA TOTAL NOTICIAS
-        // ============================================
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Zona Total Noticias - Iniciando sistema...');
-            loadNews();
-            
-            // Sincronizar automáticamente cada 30 segundos
-            setInterval(syncWithGoogleSheets, 30000);
-            
-            // Configurar búsqueda
-            const searchInput = document.getElementById('search-input');
-            const searchBtn = document.getElementById('search-btn');
-            
-            if (searchInput && searchBtn) {
-                searchInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        searchNews();
-                    }
-                });
+    <!-- News Modal -->
+    <div class="modal-overlay" id="news-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-news-title">Detalles de la Noticia</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div id="modal-news-content">
+                    <!-- News details will be loaded here -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="share-btn">
+                        <i class="fas fa-share"></i> Compartir
+                    </button>
+                    <button class="btn btn-secondary" id="close-modal-btn">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="admin-overlay" id="admin-overlay">
+        <div class="admin-container">
+            <!-- Admin Login -->
+            <div class="admin-login" id="admin-login">
+                <div class="login-header">
+                    <h3><i class="fas fa-lock"></i> Panel de Administración</h3>
+                    <p>Gestiona las noticias desde tu Google Sheets</p>
+                </div>
                 
-                searchBtn.addEventListener('click', searchNews);
-            }
-        });
-        
-        // URL de TU Google Sheets
-        const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ/gviz/tq?tqx=out:csv&sheet=Noticias';
-        
-        // Variable global para todas las noticias
-        let allNews = [];
-        
-        // Función principal para cargar noticias
-        async function loadNews() {
-            console.log('📥 Conectando a Google Sheets...');
-            
-            try {
-                const response = await fetch(GOOGLE_SHEETS_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`Error de conexión: ${response.status}`);
-                }
-                
-                const csvText = await response.text();
-                console.log('✅ Datos recibidos de Google Sheets');
-                
-                // Parsear el CSV
-                allNews = parseCSV(csvText);
-                console.log(`📊 ${allNews.length} noticias cargadas correctamente`);
-                
-                if (allNews.length > 0) {
-                    displayNews(allNews);
-                    updateCounters(allNews);
-                } else {
-                    showMessage('📭 No hay noticias disponibles. Agrega noticias en Google Sheets.');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error:', error);
-                showMessage('⚠️ Error conectando a Google Sheets. Verifica la conexión.');
-            }
-        }
-        
-        // Función para parsear CSV
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n').filter(line => line.trim() !== '');
-            
-            if (lines.length < 2) return [];
-            
-            // Obtener encabezados
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            
-            const news = [];
-            
-            // Procesar cada línea
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i];
-                const values = [];
-                let currentValue = '';
-                let insideQuotes = false;
-                
-                // Parsear manualmente para manejar comas dentro de campos
-                for (let char of line) {
-                    if (char === '"') {
-                        insideQuotes = !insideQuotes;
-                    } else if (char === ',' && !insideQuotes) {
-                        values.push(currentValue.trim().replace(/"/g, ''));
-                        currentValue = '';
-                    } else {
-                        currentValue += char;
-                    }
-                }
-                values.push(currentValue.trim().replace(/"/g, ''));
-                
-                // Crear objeto de noticia
-                if (values.length >= headers.length) {
-                    const newsItem = {};
-                    headers.forEach((header, index) => {
-                        newsItem[header] = values[index] || '';
-                    });
+                <div class="login-form" id="login-form">
+                    <div class="form-group">
+                        <label for="admin-username">Usuario</label>
+                        <input type="text" id="admin-username" value="admin" readonly>
+                    </div>
                     
-                    // Validar que tenga al menos un título
-                    if (newsItem.Título && newsItem.Título.trim() !== '') {
-                        news.push(newsItem);
-                    }
-                }
-            }
-            
-            return news;
-        }
-        
-        // Mostrar noticias en la página
-        function displayNews(newsArray) {
-            const featuredContainer = document.getElementById('featured-news');
-            const newsGrid = document.getElementById('news-grid');
-            
-            if (!featuredContainer || !newsGrid) return;
-            
-            // Limpiar contenedores
-            featuredContainer.innerHTML = '';
-            newsGrid.innerHTML = '';
-            
-            if (newsArray.length === 0) {
-                showMessage('No hay noticias para mostrar.');
-                return;
-            }
-            
-            // Separar noticias destacadas (prioridad Alta)
-            const featuredNews = newsArray.filter(news => 
-                news.Prioridad && news.Prioridad.toLowerCase() === 'alta'
-            );
-            
-            const regularNews = newsArray.filter(news => 
-                !news.Prioridad || news.Prioridad.toLowerCase() !== 'alta'
-            );
-            
-            // Mostrar noticias destacadas
-            if (featuredNews.length > 0) {
-                featuredNews.slice(0, 3).forEach(news => {
-                    featuredContainer.appendChild(createFeaturedCard(news));
-                });
-            } else {
-                // Si no hay destacadas, mostrar las 3 primeras
-                newsArray.slice(0, 3).forEach(news => {
-                    featuredContainer.appendChild(createFeaturedCard(news));
-                });
-            }
-            
-            // Mostrar todas las noticias
-            newsArray.forEach(news => {
-                newsGrid.appendChild(createNewsCard(news));
-            });
-        }
-        
-        // Crear tarjeta de noticia destacada
-        function createFeaturedCard(news) {
-            const card = document.createElement('div');
-            card.className = 'featured-card';
-            
-            const imageUrl = news.Imagen || 'https://via.placeholder.com/800x400?text=Zona+Total+Noticias';
-            const category = news.Categoría || 'General';
-            const country = news.País || 'Internacional';
-            const priority = news.Prioridad || 'Media';
-            
-            card.innerHTML = `
-                <div class="featured-image">
-                    <img src="${imageUrl}" alt="${news.Título}" onerror="this.src='https://via.placeholder.com/800x400?text=Imagen+No+Disponible'">
-                    <div class="featured-badge">Destacada</div>
-                </div>
-                <div class="featured-content">
-                    <div class="news-meta">
-                        <span class="news-country">${country}</span>
-                        <span class="news-date">${news.Fecha || 'Fecha no disponible'}</span>
+                    <div class="form-group">
+                        <label for="admin-password">Contraseña</label>
+                        <input type="password" id="admin-password" value="admin123" readonly>
                     </div>
-                    <h3 class="featured-title">${news.Título || 'Sin título'}</h3>
-                    <p class="featured-description">${news.Descripción || news.Contenido?.substring(0, 200) || 'Descripción no disponible'}...</p>
-                    <div class="featured-actions">
-                        <button class="read-more" onclick="openNewsModal('${encodeURIComponent(JSON.stringify(news))}')">
-                            📖 Leer más
-                        </button>
-                        <span class="news-priority ${priority.toLowerCase()}">
-                            ${priority}
-                        </span>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" id="login-btn">Ingresar</button>
+                        <button type="button" class="btn btn-secondary" id="cancel-login-btn">Cancelar</button>
                     </div>
                 </div>
-            `;
-            
-            return card;
-        }
-        
-        // Crear tarjeta de noticia regular
-        function createNewsCard(news) {
-            const card = document.createElement('div');
-            card.className = 'news-card';
-            
-            const imageUrl = news.Imagen || 'https://via.placeholder.com/400x250?text=Zona+Total';
-            const category = news.Categoría || 'General';
-            const country = news.País || 'Internacional';
-            const priority = news.Prioridad || 'Media';
-            
-            card.innerHTML = `
-                <div class="news-image">
-                    <img src="${imageUrl}" alt="${news.Título}" onerror="this.src='https://via.placeholder.com/400x250?text=Imagen+No+Disponible'">
-                    <div class="category-badge">${category}</div>
-                </div>
-                <div class="news-content">
-                    <div class="news-meta">
-                        <span class="news-country">${country}</span>
-                        <span class="news-date">${news.Fecha || 'Fecha no disponible'}</span>
-                    </div>
-                    <h3 class="news-title">${news.Título || 'Sin título'}</h3>
-                    <p class="news-description">${news.Descripción || news.Contenido?.substring(0, 120) || 'Descripción no disponible'}...</p>
-                    <div class="news-actions">
-                        <button class="read-more-btn" onclick="openNewsModal('${encodeURIComponent(JSON.stringify(news))}')">
-                            📰 Leer completo
-                        </button>
-                        <span class="priority-badge ${priority.toLowerCase()}">
-                            ${priority}
-                        </span>
-                    </div>
-                </div>
-            `;
-            
-            return card;
-        }
-        
-        // Abrir modal con noticia completa
-        function openNewsModal(newsJSON) {
-            try {
-                const news = JSON.parse(decodeURIComponent(newsJSON));
-                const modal = document.getElementById('news-modal');
-                const modalContent = document.getElementById('modal-news-content');
                 
-                if (!modal || !modalContent) return;
+                <div class="login-info">
+                    <p><strong>Instrucciones:</strong></p>
+                    <p>1. Usa tu Google Sheets para agregar noticias</p>
+                    <p>2. Actualiza la página para ver los cambios</p>
+                    <p>3. Las credenciales son de solo lectura</p>
+                </div>
                 
-                modalContent.innerHTML = `
-                    <div class="modal-header">
-                        <div class="modal-meta">
-                            <span class="modal-category">${news.Categoría || 'General'}</span>
-                            <span class="modal-country">${news.País || 'Internacional'}</span>
-                            <span class="modal-date">${news.Fecha || ''}</span>
-                            <span class="modal-priority ${(news.Prioridad || 'media').toLowerCase()}">
-                                ${news.Prioridad || 'Normal'}
-                            </span>
+                <div class="sheet-link">
+                    <a href="https://docs.google.com/spreadsheets/d/1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ/edit#gid=1201067322" 
+                       target="_blank" class="btn btn-small">
+                        <i class="fas fa-external-link-alt"></i> Abrir Google Sheets
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Admin Panel -->
+            <div class="admin-panel" id="admin-panel" style="display: none;">
+                <div class="admin-header">
+                    <h3><i class="fas fa-cogs"></i> Panel de Control</h3>
+                    <button class="btn btn-small" id="logout-btn">Cerrar Sesión</button>
+                </div>
+                
+                <div class="admin-tabs">
+                    <button class="tab-btn active" data-tab="news-tab">Noticias</button>
+                    <button class="tab-btn" data-tab="stats-tab">Estadísticas</button>
+                </div>
+                
+                <!-- News Management Tab -->
+                <div class="tab-content active" id="news-tab">
+                    <h4>Gestión de Noticias</h4>
+                    <div class="admin-info">
+                        <p>Las noticias se gestionan directamente desde Google Sheets. Actualiza la página web después de realizar cambios.</p>
+                        <div class="admin-actions">
+                            <a href="https://docs.google.com/spreadsheets/d/1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ/edit#gid=1201067322" 
+                               target="_blank" class="btn btn-primary">
+                                <i class="fas fa-edit"></i> Editar Google Sheets
+                            </a>
+                            <button class="btn btn-secondary" id="refresh-news-btn">
+                                <i class="fas fa-sync-alt"></i> Actualizar Noticias
+                            </button>
                         </div>
-                        <h2 class="modal-title">${news.Título || 'Sin título'}</h2>
-                        <button class="modal-close" onclick="closeNewsModal()">&times;</button>
                     </div>
-                    <div class="modal-body">
-                        ${news.Imagen ? `<img src="${news.Imagen}" alt="${news.Título}" class="modal-image" onerror="this.style.display='none'">` : ''}
-                        <div class="modal-description">
-                            <h3>Resumen</h3>
-                            <p>${news.Descripción || 'Sin descripción disponible'}</p>
-                        </div>
-                        <div class="modal-full-content">
-                            <h3>Contenido completo</h3>
-                            <p>${news.Contenido || 'Contenido no disponible'}</p>
-                        </div>
-                        ${news.Fuente ? `<div class="modal-source"><strong>Fuente:</strong> ${news.Fuente}</div>` : ''}
+                    
+                    <div class="news-list-header">
+                        <h5>Noticias Recientes</h5>
+                        <span id="news-count">Cargando...</span>
                     </div>
-                `;
+                    
+                    <div class="admin-news-list" id="admin-news-list">
+                        <!-- News will be loaded from Google Sheets -->
+                    </div>
+                </div>
                 
-                modal.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-                
-            } catch (error) {
-                console.error('Error abriendo modal:', error);
-                alert('Error al cargar la noticia completa');
-            }
-        }
-        
-        // Cerrar modal
-        function closeNewsModal() {
-            const modal = document.getElementById('news-modal');
-            if (modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            }
-        }
-        
-        // Cerrar modal al hacer clic fuera
-        window.onclick = function(event) {
-            const modal = document.getElementById('news-modal');
-            if (event.target === modal) {
-                closeNewsModal();
-            }
-        };
-        
-        // Actualizar contadores
-        function updateCounters(newsArray) {
-            const totalElement = document.getElementById('total-news');
-            const categoriesElement = document.getElementById('categories-count');
-            const countriesElement = document.getElementById('countries-count');
-            
-            if (totalElement) {
-                totalElement.textContent = newsArray.length;
-            }
-            
-            if (categoriesElement) {
-                const categories = [...new Set(newsArray.map(n => n.Categoría).filter(Boolean))];
-                categoriesElement.textContent = categories.length;
-            }
-            
-            if (countriesElement) {
-                const countries = [...new Set(newsArray.map(n => n.País).filter(Boolean))];
-                countriesElement.textContent = countries.length;
-            }
-        }
-        
-        // Mostrar mensaje
-        function showMessage(text) {
-            const newsGrid = document.getElementById('news-grid');
-            if (newsGrid) {
-                newsGrid.innerHTML = `<div class="no-news-message"><h3>${text}</h3></div>`;
-            }
-        }
-        
-        // Sincronizar con Google Sheets
-        function syncWithGoogleSheets() {
-            console.log('🔄 Sincronizando automáticamente...');
-            loadNews();
-        }
-        
-        // Filtrar por categoría
-        function filterByCategory(category) {
-            const buttons = document.querySelectorAll('.filter-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            
-            if (category === 'all') {
-                displayNews(allNews);
-            } else {
-                const filtered = allNews.filter(news => 
-                    news.Categoría && news.Categoría.toLowerCase() === category.toLowerCase()
-                );
-                displayNews(filtered);
-            }
-        }
-        
-        // Buscar noticias
-        function searchNews() {
-            const searchInput = document.getElementById('search-input');
-            const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
-            
-            if (!term) {
-                displayNews(allNews);
-                return;
-            }
-            
-            const filtered = allNews.filter(news => {
-                return (
-                    (news.Título && news.Título.toLowerCase().includes(term)) ||
-                    (news.Descripción && news.Descripción.toLowerCase().includes(term)) ||
-                    (news.Contenido && news.Contenido.toLowerCase().includes(term)) ||
-                    (news.Categoría && news.Categoría.toLowerCase().includes(term)) ||
-                    (news.País && news.País.toLowerCase().includes(term))
-                );
-            });
-            
-            displayNews(filtered);
-        }
-        
-        // Iniciar cuando la página cargue
-        window.onload = function() {
-            console.log('🌐 Página completamente cargada');
-            loadNews();
-        };
-    </script>
+                <!-- Stats Tab -->
+                <div class="tab-content" id="stats-tab">
+                    <h4>Estadísticas del Sitio</h4>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-newspaper"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h5>Total Noticias</h5>
+                                <div class="stat-number" id="admin-total-news">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-folder"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h5>Categorías</h5>
+                                <div class="stat-number" id="admin-total-categories">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h5>Última Actualización</h5>
+                                <div class="stat-number" id="last-update">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-instructions">
+                        <h5>Instrucciones para agregar noticias:</h5>
+                        <ol>
+                            <li>Abre tu Google Sheets usando el botón arriba</li>
+                            <li>Agrega una nueva fila con los datos de la noticia</li>
+                            <li>Guarda los cambios en Google Sheets</li>
+                            <li>Actualiza la página web para ver los cambios</li>
+                        </ol>
+                        <p class="note"><strong>Nota:</strong> No uses caracteres especiales como comillas dobles (") en las celdas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
