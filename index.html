@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
-        /* Estilos adicionales para noticias */
+        /* Estilos adicionales */
         .news-priority {
             position: absolute;
             top: 15px;
@@ -21,38 +21,6 @@
             font-size: 0.8rem;
             font-weight: 600;
             z-index: 2;
-        }
-
-        .no-news-admin {
-            text-align: center;
-            padding: 30px;
-            background-color: var(--medium-gray);
-            border-radius: 8px;
-            color: var(--text-secondary);
-        }
-
-        .processing, .success, .error {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        .processing {
-            background-color: rgba(255, 193, 7, 0.1);
-            color: #ffc107;
-            border-left: 4px solid #ffc107;
-        }
-
-        .success {
-            background-color: rgba(76, 175, 80, 0.1);
-            color: #4caf50;
-            border-left: 4px solid #4caf50;
-        }
-
-        .error {
-            background-color: rgba(244, 67, 54, 0.1);
-            color: #f44336;
-            border-left: 4px solid #f44336;
         }
 
         .news-country {
@@ -76,7 +44,7 @@
             margin-bottom: 10px;
         }
 
-        /* Formulario de agregar noticia */
+        /* Formulario admin */
         #add-news-form {
             margin-top: 20px;
         }
@@ -115,16 +83,126 @@
             gap: 15px;
         }
 
-        pre {
+        /* Estados de mensajes */
+        .processing, .success, .error, .info {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .processing {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+            border-left: 4px solid #ffc107;
+        }
+
+        .success {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+            border-left: 4px solid #4caf50;
+        }
+
+        .error {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            border-left: 4px solid #f44336;
+        }
+
+        .info {
+            background-color: rgba(33, 150, 243, 0.1);
+            color: #2196f3;
+            border-left: 4px solid #2196f3;
+        }
+
+        /* Botones de exportación */
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background-color: var(--secondary-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .export-btn:hover {
+            background-color: var(--primary-blue);
+            transform: translateY(-2px);
+        }
+
+        .export-btn.csv {
+            background-color: #4caf50;
+        }
+
+        .export-btn.csv:hover {
+            background-color: #388e3c;
+        }
+
+        .export-btn.json {
+            background-color: #ff9800;
+        }
+
+        .export-btn.json:hover {
+            background-color: #f57c00;
+        }
+
+        /* Instrucciones */
+        .instructions {
+            background-color: var(--medium-gray);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid var(--accent-orange);
+        }
+
+        .instructions h5 {
+            color: var(--accent-orange);
+            margin-bottom: 10px;
+        }
+
+        .instructions ol, .instructions ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .code-block {
+            background-color: #2c2c2c;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow-x: auto;
             font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+            font-size: 0.9rem;
         }
 
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
+            }
+            
+            .export-buttons {
+                flex-direction: column;
+            }
+            
+            .export-btn {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
@@ -202,7 +280,7 @@
             <div class="filters">
                 <div class="filter-buttons" id="filter-buttons">
                     <button class="filter-btn active" data-category="todas">Todas</button>
-                    <!-- Categories will be loaded from Google Sheets -->
+                    <!-- Categories will be loaded dynamically -->
                 </div>
                 
                 <div class="search-box">
@@ -231,7 +309,7 @@
             
             <!-- News Grid -->
             <div class="news-grid" id="news-grid">
-                <!-- News will be loaded dynamically from Google Sheets -->
+                <!-- News will be loaded dynamically -->
             </div>
             
             <!-- Load More Button -->
@@ -252,7 +330,7 @@
             </div>
             
             <div class="categories-grid" id="categories-grid">
-                <!-- Categories will be loaded from Google Sheets -->
+                <!-- Categories will be loaded dynamically -->
             </div>
         </div>
     </section>
@@ -309,7 +387,7 @@
             <div class="admin-login" id="admin-login">
                 <div class="login-header">
                     <h3><i class="fas fa-lock"></i> Panel de Administración</h3>
-                    <p>Gestiona las noticias desde tu Google Sheets</p>
+                    <p>Gestiona y exporta las noticias</p>
                 </div>
                 
                 <div class="login-form" id="login-form">
@@ -330,17 +408,11 @@
                 </div>
                 
                 <div class="login-info">
-                    <p><strong>Instrucciones:</strong></p>
-                    <p>1. Usa tu Google Sheets para agregar noticias</p>
-                    <p>2. Actualiza la página para ver los cambios</p>
-                    <p>3. Las credenciales son de solo lectura</p>
-                </div>
-                
-                <div class="sheet-link">
-                    <a href="https://docs.google.com/spreadsheets/d/1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ/edit#gid=1201067322" 
-                       target="_blank" class="btn btn-small">
-                        <i class="fas fa-external-link-alt"></i> Abrir Google Sheets
-                    </a>
+                    <p><strong>Funcionalidades:</strong></p>
+                    <p>✓ Agregar nuevas noticias</p>
+                    <p>✓ Exportar todas las noticias a CSV</p>
+                    <p>✓ Importar noticias desde CSV</p>
+                    <p>✓ Gestionar noticias existentes</p>
                 </div>
             </div>
             
@@ -352,45 +424,19 @@
                 </div>
                 
                 <div class="admin-tabs">
-                    <button class="tab-btn active" data-tab="news-tab">Noticias</button>
-                    <button class="tab-btn" data-tab="add-news-tab">Agregar Noticia</button>
-                    <button class="tab-btn" data-tab="stats-tab">Estadísticas</button>
-                </div>
-                
-                <!-- News Management Tab -->
-                <div class="tab-content active" id="news-tab">
-                    <h4>Gestión de Noticias</h4>
-                    <div class="admin-info">
-                        <p>Las noticias se gestionan directamente desde Google Sheets. Actualiza la página web después de realizar cambios.</p>
-                        <div class="admin-actions">
-                            <a href="https://docs.google.com/spreadsheets/d/1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ/edit#gid=1201067322" 
-                               target="_blank" class="btn btn-primary">
-                                <i class="fas fa-edit"></i> Editar Google Sheets
-                            </a>
-                            <button class="btn btn-secondary" id="refresh-news-btn">
-                                <i class="fas fa-sync-alt"></i> Actualizar Noticias
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="news-list-header">
-                        <h5>Noticias Recientes</h5>
-                        <span id="news-count">Cargando...</span>
-                    </div>
-                    
-                    <div class="admin-news-list" id="admin-news-list">
-                        <!-- News will be loaded from Google Sheets -->
-                    </div>
+                    <button class="tab-btn active" data-tab="add-news-tab">Agregar Noticia</button>
+                    <button class="tab-btn" data-tab="manage-news-tab">Gestionar Noticias</button>
+                    <button class="tab-btn" data-tab="export-news-tab">Exportar/Importar</button>
                 </div>
                 
                 <!-- Add News Tab -->
-                <div class="tab-content" id="add-news-tab">
+                <div class="tab-content active" id="add-news-tab">
                     <h4>Agregar Nueva Noticia</h4>
                     <form id="add-news-form">
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="news-title">Título *</label>
-                                <input type="text" id="news-title" required>
+                                <input type="text" id="news-title" required placeholder="Ej: Titular importante">
                             </div>
                             <div class="form-group">
                                 <label for="news-category">Categoría *</label>
@@ -402,6 +448,8 @@
                                     <option value="Tecnología">Tecnología</option>
                                     <option value="Entretenimiento">Entretenimiento</option>
                                     <option value="Salud">Salud</option>
+                                    <option value="Internacional">Internacional</option>
+                                    <option value="Cultura">Cultura</option>
                                     <option value="General">General</option>
                                 </select>
                             </div>
@@ -414,18 +462,18 @@
                             </div>
                             <div class="form-group">
                                 <label for="news-date">Fecha</label>
-                                <input type="text" id="news-date" placeholder="DD/MM/AAAA">
+                                <input type="text" id="news-date" placeholder="DD/MM/AAAA" value="">
                             </div>
                         </div>
                         
                         <div class="form-group">
                             <label for="news-description">Descripción *</label>
-                            <textarea id="news-description" rows="3" required></textarea>
+                            <textarea id="news-description" rows="3" required placeholder="Breve resumen de la noticia"></textarea>
                         </div>
                         
                         <div class="form-group">
                             <label for="news-content">Contenido Completo *</label>
-                            <textarea id="news-content" rows="5" required></textarea>
+                            <textarea id="news-content" rows="5" required placeholder="Texto completo de la noticia"></textarea>
                         </div>
                         
                         <div class="form-row">
@@ -434,7 +482,7 @@
                                 <select id="news-priority">
                                     <option value="1">1 - Normal</option>
                                     <option value="2">2</option>
-                                    <option value="3">3 - Importante</option>
+                                    <option value="3" selected>3 - Importante</option>
                                     <option value="4">4</option>
                                     <option value="5">5 - Muy Importante</option>
                                 </select>
@@ -445,9 +493,15 @@
                             </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="news-source">Fuente</label>
-                            <input type="text" id="news-source" placeholder="Zona Total" value="Zona Total">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="news-source">Fuente</label>
+                                <input type="text" id="news-source" placeholder="Zona Total" value="Zona Total">
+                            </div>
+                            <div class="form-group">
+                                <label for="news-author">Autor</label>
+                                <input type="text" id="news-author" placeholder="Redacción">
+                            </div>
                         </div>
                         
                         <div class="form-actions">
@@ -459,63 +513,84 @@
                     </form>
                     
                     <div id="form-status" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Manage News Tab -->
+                <div class="tab-content" id="manage-news-tab">
+                    <h4>Gestionar Noticias</h4>
                     
-                    <div class="admin-instructions" style="margin-top: 30px;">
-                        <h5>Instrucciones para guardar en Google Sheets:</h5>
-                        <ol>
-                            <li>Agrega la noticia usando el formulario</li>
-                            <li>Copia los datos que aparecerán abajo</li>
-                            <li>Abre tu Google Sheets</li>
-                            <li>Pega los datos en una nueva fila</li>
-                            <li>Actualiza la página web para ver los cambios</li>
-                        </ol>
+                    <div class="admin-info">
+                        <p>Actualmente hay <span id="current-news-count">0</span> noticias almacenadas.</p>
+                        <div class="admin-actions">
+                            <button class="btn btn-primary" id="refresh-list-btn">
+                                <i class="fas fa-sync-alt"></i> Actualizar Lista
+                            </button>
+                            <button class="btn btn-secondary" id="clear-all-btn">
+                                <i class="fas fa-trash"></i> Eliminar Todas
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="news-list-header">
+                        <h5>Lista de Noticias</h5>
+                        <input type="text" id="search-admin-news" placeholder="Buscar noticia..." style="padding: 8px; width: 200px;">
+                    </div>
+                    
+                    <div class="admin-news-list" id="admin-news-list">
+                        <!-- News will be loaded here -->
                     </div>
                 </div>
                 
-                <!-- Stats Tab -->
-                <div class="tab-content" id="stats-tab">
-                    <h4>Estadísticas del Sitio</h4>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-newspaper"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h5>Total Noticias</h5>
-                                <div class="stat-number" id="admin-total-news">0</div>
-                            </div>
-                        </div>
+                <!-- Export/Import Tab -->
+                <div class="tab-content" id="export-news-tab">
+                    <h4>Exportar e Importar Noticias</h4>
+                    
+                    <div class="instructions">
+                        <h5>Exportar a Google Sheets:</h5>
+                        <ol>
+                            <li>Exporta las noticias a CSV usando el botón abajo</li>
+                            <li>Guarda el archivo CSV en tu computadora</li>
+                            <li>Abre Google Sheets</li>
+                            <li>Ve a Archivo → Importar → Subir</li>
+                            <li>Selecciona el archivo CSV</li>
+                            <li>Configura las opciones de importación</li>
+                            <li>¡Listo! Tus noticias estarán en Google Sheets</li>
+                        </ol>
                         
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-folder"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h5>Categorías</h5>
-                                <div class="stat-number" id="admin-total-categories">0</div>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-calendar"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h5>Última Actualización</h5>
-                                <div class="stat-number" id="last-update">--</div>
-                            </div>
-                        </div>
+                        <h5>Importar desde Google Sheets:</h5>
+                        <ol>
+                            <li>En Google Sheets, ve a Archivo → Descargar → Valores separados por comas (.csv)</li>
+                            <li>Guarda el archivo CSV</li>
+                            <li>Usa el botón "Importar desde CSV" abajo</li>
+                            <li>Selecciona el archivo CSV</li>
+                            <li>Las noticias se cargarán automáticamente</li>
+                        </ol>
                     </div>
                     
-                    <div class="admin-instructions">
-                        <h5>Instrucciones para agregar noticias:</h5>
-                        <ol>
-                            <li>Abre tu Google Sheets usando el botón arriba</li>
-                            <li>Agrega una nueva fila con los datos de la noticia</li>
-                            <li>Guarda los cambios en Google Sheets</li>
-                            <li>Actualiza la página web para ver los cambios</li>
-                        </ol>
-                        <p class="note"><strong>Nota:</strong> No uses caracteres especiales como comillas dobles (") en las celdas</p>
+                    <div class="export-buttons">
+                        <button class="export-btn csv" id="export-csv-btn">
+                            <i class="fas fa-file-csv"></i> Exportar a CSV
+                        </button>
+                        
+                        <button class="export-btn json" id="export-json-btn">
+                            <i class="fas fa-file-code"></i> Exportar a JSON
+                        </button>
+                        
+                        <label class="export-btn" style="background-color: #2196f3; cursor: pointer;">
+                            <i class="fas fa-file-import"></i> Importar desde CSV
+                            <input type="file" id="import-csv-file" accept=".csv" style="display: none;">
+                        </label>
+                        
+                        <button class="export-btn" id="backup-news-btn" style="background-color: #9c27b0;">
+                            <i class="fas fa-database"></i> Crear Backup
+                        </button>
+                    </div>
+                    
+                    <div id="export-status" style="margin-top: 20px;"></div>
+                    
+                    <div class="code-block" id="csv-preview" style="display: none;">
+                        <h5 style="color: var(--text-color); margin-bottom: 10px;">Vista Previa CSV:</h5>
+                        <pre id="csv-preview-content"></pre>
                     </div>
                 </div>
             </div>
@@ -523,23 +598,25 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE GOOGLE SHEETS (CSV público)
-        const GOOGLE_SHEETS_ID = '1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ';
-        const SHEET_GID = '1201067322'; // El gid de tu hoja
-        const GOOGLE_SHEETS_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=${SHEET_GID}`;
-
+        // =============== SISTEMA DE NOTICIAS ===============
         // Variables globales
         let news = [];
-        let categories = [];
+        let categories = new Set();
         let filteredNews = [];
         let currentCategory = 'todas';
         let searchQuery = '';
         let newsPerPage = 6;
         let currentPage = 1;
 
+        // Clave para localStorage
+        const STORAGE_KEY = 'zona_total_news_data';
+
         // =============== INICIALIZACIÓN ===============
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Zona Total Noticias - Iniciando...');
+            
+            // Cargar noticias desde localStorage
+            loadNewsFromStorage();
             
             // Inicializar componentes
             initNavigation();
@@ -547,116 +624,396 @@
             initModal();
             initAdmin();
             
-            // Cargar noticias desde Google Sheets
-            loadNewsFromGoogleSheets();
-            
             // Configurar el botón "Cargar más"
             const loadMoreBtn = document.getElementById('load-more-btn');
             if (loadMoreBtn) {
                 loadMoreBtn.addEventListener('click', loadMoreNews);
             }
+            
+            // Actualizar la interfaz
+            updateCategories();
+            filterNews();
+            renderNews();
+            renderCategories();
+            updateNewsCount();
         });
 
-        // =============== CARGAR NOTICIAS DESDE GOOGLE SHEETS ===============
-        async function loadNewsFromGoogleSheets() {
-            showLoading(true);
-            
+        // =============== GESTIÓN DE NOTICIAS ===============
+        function loadNewsFromStorage() {
             try {
-                // Usar un proxy CORS para evitar problemas
-                const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                const response = await fetch(proxyUrl + encodeURIComponent(GOOGLE_SHEETS_CSV_URL));
-                
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
+                const savedNews = localStorage.getItem(STORAGE_KEY);
+                if (savedNews) {
+                    news = JSON.parse(savedNews);
+                    console.log(`Cargadas ${news.length} noticias desde localStorage`);
+                    
+                    // Extraer categorías
+                    categories = new Set();
+                    news.forEach(item => {
+                        if (item.category) {
+                            categories.add(item.category);
+                        }
+                    });
+                    
+                    // Si no hay noticias, agregar ejemplos
+                    if (news.length === 0) {
+                        loadSampleNews();
+                    }
+                } else {
+                    // Cargar noticias de ejemplo
+                    loadSampleNews();
                 }
-                
-                const csvText = await response.text();
-                parseNewsFromCSV(csvText);
-                
-                showLoading(false);
-                
             } catch (error) {
-                console.error('Error cargando Google Sheets:', error);
-                
-                // Si hay error, cargar noticias de ejemplo
+                console.error('Error cargando noticias:', error);
                 loadSampleNews();
-                showError('No se pudieron cargar las noticias de Google Sheets. Mostrando noticias de ejemplo.');
-                showLoading(false);
             }
         }
 
-        function parseNewsFromCSV(csvText) {
+        function saveNewsToStorage() {
             try {
-                // Parsear CSV
-                const rows = csvText.split('\n').filter(row => row.trim() !== '');
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(news));
+                console.log(`Guardadas ${news.length} noticias en localStorage`);
+                return true;
+            } catch (error) {
+                console.error('Error guardando noticias:', error);
+                showError('Error al guardar las noticias');
+                return false;
+            }
+        }
+
+        function loadSampleNews() {
+            news = [
+                {
+                    id: Date.now() + 1,
+                    title: "Nueva Ley de Educación aprobada en el Congreso",
+                    description: "El Congreso Nacional ha aprobado hoy la nueva Ley de Educación con una amplia mayoría.",
+                    category: "Política",
+                    country: "España",
+                    date: "15/01/2024",
+                    priority: 5,
+                    image: "https://images.unsplash.com/photo-1589652717521-10c0d092dea9?w=800&q=80",
+                    content: "El Congreso Nacional ha aprobado hoy la nueva Ley de Educación con una amplia mayoría. La ley incluye reformas en el sistema de evaluación y mayores recursos para escuelas públicas.",
+                    source: "Zona Total",
+                    author: "Carlos Méndez",
+                    excerpt: "Reforma educativa aprobada con apoyo multipartidista",
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: Date.now() + 2,
+                    title: "Equipo local gana el campeonato nacional",
+                    description: "En un emocionante partido final, nuestro equipo local se coronó campeón nacional.",
+                    category: "Deportes",
+                    country: "México",
+                    date: "14/01/2024",
+                    priority: 4,
+                    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80",
+                    content: "En un emocionante partido final, nuestro equipo local se coronó campeón nacional tras vencer 3-2 en tiempo extra.",
+                    source: "Zona Total",
+                    author: "Ana López",
+                    excerpt: "Victoria histórica en el torneo nacional de fútbol",
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: Date.now() + 3,
+                    title: "Nueva tecnología revoluciona el mercado",
+                    description: "Una startup local ha desarrollado una tecnología que promete cambiar la industria.",
+                    category: "Tecnología",
+                    country: "Estados Unidos",
+                    date: "13/01/2024",
+                    priority: 3,
+                    image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&q=80",
+                    content: "Una startup local ha desarrollado una tecnología que promete cambiar la forma en que interactuamos con dispositivos inteligentes.",
+                    source: "Zona Total",
+                    author: "Laura Rodríguez",
+                    excerpt: "Innovación tecnológica con potencial disruptivo",
+                    createdAt: new Date().toISOString()
+                }
+            ];
+            
+            categories = new Set(['Política', 'Deportes', 'Tecnología']);
+            saveNewsToStorage();
+        }
+
+        function addNews(newsData) {
+            // Validar datos
+            if (!newsData.title || !newsData.description || !newsData.category) {
+                throw new Error('Faltan campos requeridos');
+            }
+            
+            // Crear objeto de noticia completo
+            const newsItem = {
+                id: Date.now(),
+                title: newsData.title.trim(),
+                description: newsData.description.trim(),
+                category: newsData.category,
+                country: newsData.country || '',
+                date: newsData.date || new Date().toLocaleDateString('es-ES'),
+                priority: parseInt(newsData.priority) || 1,
+                image: newsData.image || getDefaultImage(newsData.category),
+                content: newsData.content.trim() || newsData.description.trim(),
+                source: newsData.source || 'Zona Total',
+                author: newsData.author || 'Redacción',
+                excerpt: generateExcerpt(newsData.description, 150),
+                createdAt: new Date().toISOString()
+            };
+            
+            // Agregar a la lista
+            news.unshift(newsItem); // Agregar al inicio
+            categories.add(newsItem.category);
+            
+            // Guardar en almacenamiento
+            saveNewsToStorage();
+            
+            return newsItem;
+        }
+
+        function deleteNews(id) {
+            const index = news.findIndex(item => item.id === id);
+            if (index !== -1) {
+                const deleted = news.splice(index, 1)[0];
+                saveNewsToStorage();
                 
-                if (rows.length <= 1) {
-                    showError('No hay noticias en Google Sheets. Agrega noticias desde el panel Admin.');
-                    loadSampleNews();
-                    return;
+                // Actualizar categorías si es necesario
+                updateCategoriesList();
+                
+                return deleted;
+            }
+            return null;
+        }
+
+        function updateCategoriesList() {
+            categories = new Set();
+            news.forEach(item => {
+                if (item.category) {
+                    categories.add(item.category);
+                }
+            });
+        }
+
+        // =============== EXPORTACIÓN CSV ===============
+        function exportToCSV() {
+            try {
+                if (news.length === 0) {
+                    throw new Error('No hay noticias para exportar');
                 }
                 
-                // Obtener encabezados (primera fila)
-                const headers = parseCSVRow(rows[0]);
+                // Definir encabezados
+                const headers = [
+                    'Título',
+                    'Descripción', 
+                    'Categoría',
+                    'País',
+                    'Fecha',
+                    'Prioridad',
+                    'Imagen',
+                    'Contenido',
+                    'Fuente',
+                    'Autor'
+                ];
                 
-                // Parsear cada fila de noticias
-                news = [];
-                categories = new Set();
+                // Convertir noticias a filas CSV
+                const csvRows = [];
                 
-                for (let i = 1; i < rows.length; i++) {
-                    const values = parseCSVRow(rows[i]);
-                    
-                    if (values.length >= 3) { // Al menos título, descripción y categoría
-                        const newsItem = {
-                            id: i,
-                            title: values[0] || `Noticia ${i}`,
-                            description: values[1] || '',
-                            category: values[2] || 'General',
-                            country: values[3] || '',
-                            date: values[4] || new Date().toLocaleDateString('es-ES'),
-                            priority: parseInt(values[5]) || 1,
-                            image: values[6] || getDefaultImage(values[2]),
-                            content: values[7] || values[1] || 'Contenido no disponible.',
-                            source: values[8] || 'Zona Total',
-                            excerpt: generateExcerpt(values[1] || values[7], 150),
-                            active: true
-                        };
-                        
-                        news.push(newsItem);
-                        categories.add(newsItem.category);
-                    }
+                // Agregar encabezados
+                csvRows.push(headers.join(','));
+                
+                // Agregar datos
+                news.forEach(item => {
+                    const row = [
+                        escapeCSV(item.title || ''),
+                        escapeCSV(item.description || ''),
+                        escapeCSV(item.category || ''),
+                        escapeCSV(item.country || ''),
+                        escapeCSV(item.date || ''),
+                        item.priority || 1,
+                        escapeCSV(item.image || ''),
+                        escapeCSV(item.content || ''),
+                        escapeCSV(item.source || ''),
+                        escapeCSV(item.author || '')
+                    ];
+                    csvRows.push(row.join(','));
+                });
+                
+                const csvString = csvRows.join('\n');
+                
+                // Crear archivo y descargar
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `noticias_zona_total_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                return {
+                    success: true,
+                    message: `Se exportaron ${news.length} noticias a CSV`,
+                    data: csvString
+                };
+                
+            } catch (error) {
+                console.error('Error exportando a CSV:', error);
+                return {
+                    success: false,
+                    message: 'Error al exportar a CSV: ' + error.message
+                };
+            }
+        }
+
+        function escapeCSV(text) {
+            if (!text) return '""';
+            // Escapar comillas dobles y agregar comillas si contiene comas o saltos de línea
+            const escaped = text.toString().replace(/"/g, '""');
+            if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')) {
+                return `"${escaped}"`;
+            }
+            return escaped;
+        }
+
+        function exportToJSON() {
+            try {
+                if (news.length === 0) {
+                    throw new Error('No hay noticias para exportar');
                 }
                 
-                console.log(`Cargadas ${news.length} noticias de Google Sheets`);
+                const jsonData = JSON.stringify(news, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `noticias_zona_total_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
                 
-                // Ordenar por prioridad y fecha
-                news.sort((a, b) => {
-                    if (b.priority !== a.priority) {
-                        return b.priority - a.priority;
-                    }
-                    
+                return {
+                    success: true,
+                    message: `Se exportaron ${news.length} noticias a JSON`
+                };
+                
+            } catch (error) {
+                console.error('Error exportando a JSON:', error);
+                return {
+                    success: false,
+                    message: 'Error al exportar a JSON: ' + error.message
+                };
+            }
+        }
+
+        function importFromCSV(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
                     try {
-                        const dateA = new Date(a.date.split('/').reverse().join('-'));
-                        const dateB = new Date(b.date.split('/').reverse().join('-'));
-                        return dateB - dateA;
-                    } catch {
-                        return 0;
+                        const csvText = e.target.result;
+                        const importedNews = parseCSV(csvText);
+                        
+                        if (importedNews.length === 0) {
+                            reject(new Error('No se encontraron noticias en el archivo CSV'));
+                            return;
+                        }
+                        
+                        // Agregar noticias importadas
+                        importedNews.forEach(newsItem => {
+                            if (newsItem.title && newsItem.description && newsItem.category) {
+                                newsItem.id = Date.now() + Math.random();
+                                newsItem.createdAt = new Date().toISOString();
+                                news.unshift(newsItem);
+                                categories.add(newsItem.category);
+                            }
+                        });
+                        
+                        // Guardar y actualizar
+                        saveNewsToStorage();
+                        updateCategories();
+                        filterNews();
+                        renderNews();
+                        renderCategories();
+                        updateNewsCount();
+                        updateAdminStats();
+                        
+                        resolve({
+                            success: true,
+                            message: `Se importaron ${importedNews.length} noticias desde CSV`,
+                            count: importedNews.length
+                        });
+                        
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error('Error leyendo el archivo CSV'));
+                };
+                
+                reader.readAsText(file);
+            });
+        }
+
+        function parseCSV(csvText) {
+            const rows = csvText.split('\n').filter(row => row.trim() !== '');
+            if (rows.length < 2) return [];
+            
+            const headers = rows[0].split(',').map(h => h.trim());
+            const newsList = [];
+            
+            for (let i = 1; i < rows.length; i++) {
+                const values = parseCSVRow(rows[i]);
+                const newsItem = {};
+                
+                headers.forEach((header, index) => {
+                    if (values[index] !== undefined) {
+                        const value = values[index].replace(/^"|"$/g, '').trim();
+                        switch(header.toLowerCase()) {
+                            case 'título':
+                                newsItem.title = value;
+                                break;
+                            case 'descripción':
+                                newsItem.description = value;
+                                break;
+                            case 'categoría':
+                            case 'categoria':
+                                newsItem.category = value;
+                                break;
+                            case 'país':
+                            case 'pais':
+                                newsItem.country = value;
+                                break;
+                            case 'fecha':
+                                newsItem.date = value;
+                                break;
+                            case 'prioridad':
+                                newsItem.priority = parseInt(value) || 1;
+                                break;
+                            case 'imagen':
+                                newsItem.image = value || getDefaultImage(newsItem.category);
+                                break;
+                            case 'contenido':
+                                newsItem.content = value;
+                                break;
+                            case 'fuente':
+                                newsItem.source = value || 'Zona Total';
+                                break;
+                            case 'autor':
+                                newsItem.author = value || 'Redacción';
+                                break;
+                        }
                     }
                 });
                 
-                // Actualizar la interfaz
-                updateCategories();
-                filterNews();
-                renderNews();
-                renderCategories();
-                updateNewsCount();
-                updateAdminStats();
-                
-            } catch (error) {
-                console.error('Error parseando CSV:', error);
-                showError('Error procesando los datos. Verifica el formato de Google Sheets.');
-                loadSampleNews();
+                // Asegurar campos esenciales
+                if (newsItem.title && newsItem.description && newsItem.category) {
+                    if (!newsItem.content) newsItem.content = newsItem.description;
+                    if (!newsItem.excerpt) newsItem.excerpt = generateExcerpt(newsItem.description, 150);
+                    newsList.push(newsItem);
+                }
             }
+            
+            return newsList;
         }
 
         function parseCSVRow(row) {
@@ -684,67 +1041,44 @@
             }
             
             values.push(current);
-            return values.map(v => v.replace(/^"|"$/g, '').trim());
+            return values;
         }
 
-        function loadSampleNews() {
-            // Noticias de ejemplo
-            news = [
-                {
-                    id: 1,
-                    title: "Nueva Ley de Educación aprobada en el Congreso",
-                    description: "El Congreso Nacional ha aprobado hoy la nueva Ley de Educación con una amplia mayoría.",
-                    category: "Política",
-                    country: "España",
-                    date: "15/01/2024",
-                    priority: 5,
-                    image: "https://images.unsplash.com/photo-1589652717521-10c0d092dea9?w=800&q=80",
-                    content: "El Congreso Nacional ha aprobado hoy la nueva Ley de Educación con una amplia mayoría. La ley incluye reformas en el sistema de evaluación y mayores recursos para escuelas públicas. Los cambios entrarán en vigor el próximo curso académico.",
-                    source: "Zona Total",
-                    excerpt: "Reforma educativa aprobada con apoyo multipartidista",
-                    active: true
-                },
-                {
-                    id: 2,
-                    title: "Equipo local gana el campeonato nacional",
-                    description: "En un emocionante partido final, nuestro equipo local se coronó campeón nacional.",
-                    category: "Deportes",
-                    country: "México",
-                    date: "14/01/2024",
-                    priority: 4,
-                    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80",
-                    content: "En un emocionante partido final, nuestro equipo local se coronó campeón nacional tras vencer 3-2 en tiempo extra. Miles de fanáticos celebraron en las calles de la ciudad. El entrenador declaró que este es el mayor logro en la historia del club.",
-                    source: "Zona Total",
-                    excerpt: "Victoria histórica en el torneo nacional de fútbol",
-                    active: true
-                },
-                {
-                    id: 3,
-                    title: "Nueva tecnología revoluciona el mercado",
-                    description: "Una startup local ha desarrollado una tecnología que promete cambiar la forma en que interactuamos con dispositivos.",
-                    category: "Tecnología",
-                    country: "Estados Unidos",
-                    date: "13/01/2024",
-                    priority: 3,
-                    image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&q=80",
-                    content: "Una startup local ha desarrollado una tecnología que promete cambiar la forma en que interactuamos con dispositivos inteligentes. Los expertos predicen un impacto significativo en la industria. El producto estará disponible a finales de este año.",
-                    source: "Zona Total",
-                    excerpt: "Innovación tecnológica con potencial disruptivo",
-                    active: true
-                }
-            ];
-            
-            categories = new Set(['Política', 'Deportes', 'Tecnología']);
-            
-            // Actualizar la interfaz
-            updateCategories();
-            filterNews();
-            renderNews();
-            renderCategories();
-            updateNewsCount();
-            updateAdminStats();
+        function createBackup() {
+            try {
+                const backupData = {
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    newsCount: news.length,
+                    news: news
+                };
+                
+                const jsonData = JSON.stringify(backupData, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `backup_noticias_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                return {
+                    success: true,
+                    message: `Backup creado con ${news.length} noticias`
+                };
+                
+            } catch (error) {
+                console.error('Error creando backup:', error);
+                return {
+                    success: false,
+                    message: 'Error creando backup: ' + error.message
+                };
+            }
         }
 
+        // =============== FUNCIONES AUXILIARES ===============
         function getDefaultImage(category) {
             const categoryImages = {
                 'Política': 'https://images.unsplash.com/photo-1551135049-8a33b2fb2f7f?w=800&q=80',
@@ -753,6 +1087,8 @@
                 'Tecnología': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&q=80',
                 'Entretenimiento': 'https://images.unsplash.com/photo-1492684223066-dd23140edf6d?w=800&q=80',
                 'Salud': 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&q=80',
+                'Internacional': 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=80',
+                'Cultura': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80',
                 'General': 'https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=800&q=80'
             };
             
@@ -766,73 +1102,17 @@
             return text.substring(0, maxLength) + '...';
         }
 
-        // =============== AGREGAR NOTICIA A GOOGLE SHEETS ===============
-        async function addNewsToGoogleSheets(newsData) {
+        function formatDate(dateString) {
+            if (!dateString) return 'Sin fecha';
             try {
-                // Convertir a formato CSV
-                const csvRow = [
-                    `"${newsData.title.replace(/"/g, '""')}"`,
-                    `"${newsData.description.replace(/"/g, '""')}"`,
-                    `"${newsData.category}"`,
-                    `"${newsData.country}"`,
-                    `"${newsData.date}"`,
-                    `"${newsData.priority}"`,
-                    `"${newsData.image}"`,
-                    `"${newsData.content.replace(/"/g, '""')}"`,
-                    `"${newsData.source}"`
-                ].join(',');
-                
-                // Para agregar a Google Sheets necesitamos usar Google Apps Script
-                // Como alternativa, guardamos en localStorage y mostramos mensaje
-                saveNewsToLocalStorage(newsData);
-                
-                return {
-                    success: true,
-                    message: 'Noticia agregada localmente. Para guardar en Google Sheets, copia manualmente los datos.',
-                    data: newsData
-                };
-                
-            } catch (error) {
-                console.error('Error agregando noticia:', error);
-                return {
-                    success: false,
-                    message: 'Error al agregar noticia'
-                };
+                const date = new Date(dateString);
+                return date.toLocaleDateString('es-ES');
+            } catch {
+                return dateString;
             }
         }
 
-        function saveNewsToLocalStorage(newsData) {
-            try {
-                // Obtener noticias existentes
-                let localNews = JSON.parse(localStorage.getItem('zona_total_news')) || [];
-                
-                // Agregar nueva noticia
-                newsData.id = Date.now(); // ID único basado en timestamp
-                localNews.push(newsData);
-                
-                // Guardar en localStorage
-                localStorage.setItem('zona_total_news', JSON.stringify(localNews));
-                
-                // Actualizar lista de noticias
-                news = [...news, newsData];
-                categories.add(newsData.category);
-                
-                // Actualizar interfaz
-                updateCategories();
-                filterNews();
-                renderNews();
-                renderCategories();
-                updateNewsCount();
-                updateAdminStats();
-                
-                return true;
-            } catch (error) {
-                console.error('Error guardando en localStorage:', error);
-                return false;
-            }
-        }
-
-        // =============== RENDERIZAR INTERFAZ ===============
+        // =============== INTERFAZ DE USUARIO ===============
         function updateCategories() {
             const filterButtons = document.getElementById('filter-buttons');
             if (!filterButtons) return;
@@ -906,9 +1186,10 @@
                             '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 10px;">Limpiar búsqueda</button>' : 
                             ''
                         }
-                        <button onclick="location.reload()" class="btn btn-secondary" style="margin: 10px;">
-                            <i class="fas fa-redo"></i> Recargar
-                        </button>
+                        ${news.length === 0 ? 
+                            '<button onclick="loadSampleNews(); updateCategories(); filterNews(); renderNews();" class="btn btn-secondary" style="margin: 10px;">Cargar Noticias de Ejemplo</button>' : 
+                            ''
+                        }
                     </div>
                 `;
                 
@@ -952,13 +1233,13 @@
                 <div class="news-content">
                     <div class="news-header">
                         <h3 class="news-title">${newsItem.title}</h3>
-                        <div class="news-date">${newsItem.date}</div>
+                        <div class="news-date">${formatDate(newsItem.date)}</div>
                     </div>
                     <p class="news-excerpt">${newsItem.excerpt || newsItem.description}</p>
                     <div class="news-meta">
                         <div class="news-author">
                             <i class="fas fa-user"></i>
-                            <span>${newsItem.source}</span>
+                            <span>${newsItem.author || newsItem.source}</span>
                         </div>
                         ${newsItem.country ? `<div class="news-country"><i class="fas fa-globe"></i> ${newsItem.country}</div>` : ''}
                     </div>
@@ -1004,6 +1285,8 @@
                 if (category.includes('Tecnología')) iconClass = 'fas fa-laptop-code';
                 if (category.includes('Entretenimiento')) iconClass = 'fas fa-film';
                 if (category.includes('Salud')) iconClass = 'fas fa-heartbeat';
+                if (category.includes('Internacional')) iconClass = 'fas fa-globe-americas';
+                if (category.includes('Cultura')) iconClass = 'fas fa-theater-masks';
                 
                 categoryCard.innerHTML = `
                     <div class="category-icon">
@@ -1040,7 +1323,25 @@
             });
         }
 
-        // =============== FUNCIONALIDADES DEL ADMIN ===============
+        function updateNewsCount() {
+            const totalNewsElement = document.getElementById('total-news');
+            if (totalNewsElement) {
+                totalNewsElement.textContent = news.length;
+            }
+        }
+
+        function loadMoreNews() {
+            currentPage++;
+            renderNews();
+            
+            // Scroll suave a las nuevas noticias
+            const newsGrid = document.getElementById('news-grid');
+            if (newsGrid && newsGrid.lastElementChild) {
+                newsGrid.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // =============== PANEL ADMIN ===============
         function initAdmin() {
             // Botón Admin
             const adminAccessBtn = document.getElementById('admin-access-btn');
@@ -1054,12 +1355,21 @@
                 });
             }
             
-            // Login (simplificado para demostración)
+            // Login
             const loginBtn = document.getElementById('login-btn');
             if (loginBtn) {
                 loginBtn.addEventListener('click', () => {
-                    document.getElementById('admin-login').style.display = 'none';
-                    document.getElementById('admin-panel').style.display = 'block';
+                    const username = document.getElementById('admin-username').value;
+                    const password = document.getElementById('admin-password').value;
+                    
+                    if (username === 'admin' && password === 'admin123') {
+                        document.getElementById('admin-login').style.display = 'none';
+                        document.getElementById('admin-panel').style.display = 'block';
+                        updateAdminStats();
+                        renderAdminNewsList();
+                    } else {
+                        alert('Credenciales: admin / admin123');
+                    }
                 });
             }
             
@@ -1099,10 +1409,10 @@
                 });
             });
             
-            // Formulario para agregar noticia
+            // Formulario agregar noticia
             const addNewsForm = document.getElementById('add-news-form');
             if (addNewsForm) {
-                addNewsForm.addEventListener('submit', async (e) => {
+                addNewsForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     
                     const newsData = {
@@ -1114,7 +1424,8 @@
                         priority: parseInt(document.getElementById('news-priority').value) || 1,
                         image: document.getElementById('news-image').value || getDefaultImage(document.getElementById('news-category').value),
                         content: document.getElementById('news-content').value,
-                        source: document.getElementById('news-source').value || 'Zona Total'
+                        source: document.getElementById('news-source').value || 'Zona Total',
+                        author: document.getElementById('news-author').value || 'Redacción'
                     };
                     
                     // Validar campos requeridos
@@ -1127,120 +1438,318 @@
                     const statusDiv = document.getElementById('form-status');
                     statusDiv.innerHTML = '<div class="processing"><i class="fas fa-spinner fa-spin"></i> Agregando noticia...</div>';
                     
-                    // Agregar noticia
-                    const result = await addNewsToGoogleSheets(newsData);
-                    
-                    if (result.success) {
+                    try {
+                        // Agregar noticia
+                        addNews(newsData);
+                        
+                        // Actualizar interfaz
+                        updateCategories();
+                        filterNews();
+                        renderNews();
+                        renderCategories();
+                        updateNewsCount();
+                        updateAdminStats();
+                        renderAdminNewsList();
+                        
                         statusDiv.innerHTML = `<div class="success">
-                            <i class="fas fa-check-circle"></i> ${result.message}
-                            <p><strong>Para guardar en Google Sheets:</strong></p>
-                            <p>1. Abre tu Google Sheets</p>
-                            <p>2. Agrega una nueva fila con estos datos:</p>
-                            <pre style="background: #2c2c2c; padding: 10px; border-radius: 4px; margin: 10px 0;">
-${newsData.title}
-${newsData.description}
-${newsData.category}
-${newsData.country}
-${newsData.date}
-${newsData.priority}
-${newsData.image}
-${newsData.content}
-${newsData.source}</pre>
+                            <i class="fas fa-check-circle"></i> Noticia agregada exitosamente!
+                            <p>Se ha agregado "${newsData.title}" a la lista de noticias.</p>
                         </div>`;
                         
                         // Limpiar formulario
                         addNewsForm.reset();
+                        document.getElementById('news-date').value = '';
                         
-                        // Actualizar lista de noticias en admin
+                        // Actualizar pestaña de gestión
                         setTimeout(() => {
-                            renderAdminNewsList();
-                            updateAdminStats();
-                        }, 500);
+                            const manageTabBtn = document.querySelector('[data-tab="manage-news-tab"]');
+                            if (manageTabBtn) {
+                                manageTabBtn.click();
+                            }
+                        }, 1500);
                         
-                    } else {
+                    } catch (error) {
                         statusDiv.innerHTML = `<div class="error">
-                            <i class="fas fa-exclamation-triangle"></i> ${result.message}
+                            <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
                         </div>`;
                     }
                 });
             }
             
-            // Actualizar noticias
-            const refreshBtn = document.getElementById('refresh-news-btn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', () => {
-                    loadNewsFromGoogleSheets();
-                    alert('Noticias actualizadas');
+            // Botón actualizar lista
+            const refreshListBtn = document.getElementById('refresh-list-btn');
+            if (refreshListBtn) {
+                refreshListBtn.addEventListener('click', () => {
+                    renderAdminNewsList();
+                    updateAdminStats();
+                    showMessage('Lista actualizada', 'success');
                 });
             }
             
-            // Abrir Google Sheets
-            const openSheetsBtn = document.querySelector('[href*="docs.google.com"]');
-            if (openSheetsBtn) {
-                openSheetsBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    window.open(e.target.href || e.target.parentElement.href, '_blank');
+            // Botón eliminar todas
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', () => {
+                    if (confirm(`¿Estás seguro de eliminar TODAS las noticias (${news.length})? Esta acción no se puede deshacer.`)) {
+                        news = [];
+                        categories = new Set();
+                        localStorage.removeItem(STORAGE_KEY);
+                        updateCategories();
+                        filterNews();
+                        renderNews();
+                        renderCategories();
+                        updateNewsCount();
+                        updateAdminStats();
+                        renderAdminNewsList();
+                        showMessage('Todas las noticias han sido eliminadas', 'success');
+                    }
+                });
+            }
+            
+            // Búsqueda en admin
+            const searchAdminInput = document.getElementById('search-admin-news');
+            if (searchAdminInput) {
+                searchAdminInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase();
+                    const newsItems = document.querySelectorAll('.admin-news-item');
+                    
+                    newsItems.forEach(item => {
+                        const title = item.querySelector('.admin-news-title').textContent.toLowerCase();
+                        const category = item.querySelector('.admin-news-category').textContent.toLowerCase();
+                        const excerpt = item.querySelector('.admin-news-excerpt').textContent.toLowerCase();
+                        
+                        if (title.includes(query) || category.includes(query) || excerpt.includes(query)) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            }
+            
+            // Exportar a CSV
+            const exportCsvBtn = document.getElementById('export-csv-btn');
+            if (exportCsvBtn) {
+                exportCsvBtn.addEventListener('click', () => {
+                    const statusDiv = document.getElementById('export-status');
+                    statusDiv.innerHTML = '<div class="processing"><i class="fas fa-spinner fa-spin"></i> Exportando a CSV...</div>';
+                    
+                    setTimeout(() => {
+                        const result = exportToCSV();
+                        
+                        if (result.success) {
+                            statusDiv.innerHTML = `<div class="success">
+                                <i class="fas fa-check-circle"></i> ${result.message}
+                                <p>El archivo CSV se ha descargado automáticamente.</p>
+                            </div>`;
+                            
+                            // Mostrar vista previa
+                            const previewDiv = document.getElementById('csv-preview');
+                            const previewContent = document.getElementById('csv-preview-content');
+                            if (previewDiv && previewContent) {
+                                previewContent.textContent = result.data.split('\n').slice(0, 5).join('\n') + '\n...';
+                                previewDiv.style.display = 'block';
+                            }
+                        } else {
+                            statusDiv.innerHTML = `<div class="error">
+                                <i class="fas fa-exclamation-triangle"></i> ${result.message}
+                            </div>`;
+                        }
+                    }, 500);
+                });
+            }
+            
+            // Exportar a JSON
+            const exportJsonBtn = document.getElementById('export-json-btn');
+            if (exportJsonBtn) {
+                exportJsonBtn.addEventListener('click', () => {
+                    const statusDiv = document.getElementById('export-status');
+                    statusDiv.innerHTML = '<div class="processing"><i class="fas fa-spinner fa-spin"></i> Exportando a JSON...</div>';
+                    
+                    setTimeout(() => {
+                        const result = exportToJSON();
+                        
+                        if (result.success) {
+                            statusDiv.innerHTML = `<div class="success">
+                                <i class="fas fa-check-circle"></i> ${result.message}
+                                <p>El archivo JSON se ha descargado automáticamente.</p>
+                            </div>`;
+                        } else {
+                            statusDiv.innerHTML = `<div class="error">
+                                <i class="fas fa-exclamation-triangle"></i> ${result.message}
+                            </div>`;
+                        }
+                    }, 500);
+                });
+            }
+            
+            // Importar desde CSV
+            const importCsvFile = document.getElementById('import-csv-file');
+            if (importCsvFile) {
+                importCsvFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const statusDiv = document.getElementById('export-status');
+                    statusDiv.innerHTML = '<div class="processing"><i class="fas fa-spinner fa-spin"></i> Importando desde CSV...</div>';
+                    
+                    importFromCSV(file)
+                        .then(result => {
+                            statusDiv.innerHTML = `<div class="success">
+                                <i class="fas fa-check-circle"></i> ${result.message}
+                                <p>Se han importado ${result.count} noticias exitosamente.</p>
+                            </div>`;
+                            
+                            // Limpiar input
+                            importCsvFile.value = '';
+                            
+                            // Actualizar pestaña de gestión
+                            setTimeout(() => {
+                                renderAdminNewsList();
+                                updateAdminStats();
+                                const manageTabBtn = document.querySelector('[data-tab="manage-news-tab"]');
+                                if (manageTabBtn) {
+                                    manageTabBtn.click();
+                                }
+                            }, 1000);
+                        })
+                        .catch(error => {
+                            statusDiv.innerHTML = `<div class="error">
+                                <i class="fas fa-exclamation-triangle"></i> Error importando: ${error.message}
+                            </div>`;
+                            importCsvFile.value = '';
+                        });
+                });
+            }
+            
+            // Crear backup
+            const backupNewsBtn = document.getElementById('backup-news-btn');
+            if (backupNewsBtn) {
+                backupNewsBtn.addEventListener('click', () => {
+                    const statusDiv = document.getElementById('export-status');
+                    statusDiv.innerHTML = '<div class="processing"><i class="fas fa-spinner fa-spin"></i> Creando backup...</div>';
+                    
+                    setTimeout(() => {
+                        const result = createBackup();
+                        
+                        if (result.success) {
+                            statusDiv.innerHTML = `<div class="success">
+                                <i class="fas fa-check-circle"></i> ${result.message}
+                                <p>El archivo de backup se ha descargado automáticamente.</p>
+                            </div>`;
+                        } else {
+                            statusDiv.innerHTML = `<div class="error">
+                                <i class="fas fa-exclamation-triangle"></i> ${result.message}
+                            </div>`;
+                        }
+                    }, 500);
                 });
             }
         }
 
         function renderAdminNewsList() {
             const adminNewsList = document.getElementById('admin-news-list');
-            const newsCount = document.getElementById('news-count');
+            const currentNewsCount = document.getElementById('current-news-count');
             
             if (!adminNewsList) return;
             
-            // Mostrar últimas 10 noticias
-            const recentNews = news.slice(0, 10);
+            // Actualizar contador
+            if (currentNewsCount) {
+                currentNewsCount.textContent = news.length;
+            }
+            
+            // Ordenar por fecha de creación (más reciente primero)
+            const sortedNews = [...news].sort((a, b) => {
+                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            });
             
             adminNewsList.innerHTML = '';
             
-            if (recentNews.length === 0) {
-                adminNewsList.innerHTML = '<div class="no-news-admin"><p>No hay noticias disponibles.</p></div>';
-                if (newsCount) newsCount.textContent = '0 noticias';
+            if (sortedNews.length === 0) {
+                adminNewsList.innerHTML = `
+                    <div class="no-news-admin" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-newspaper" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                        <p style="color: var(--text-secondary);">No hay noticias almacenadas.</p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 10px;">Agrega noticias desde la pestaña "Agregar Noticia"</p>
+                    </div>
+                `;
                 return;
             }
             
-            if (newsCount) {
-                newsCount.textContent = `${news.length} noticias`;
-            }
-            
-            recentNews.forEach(newsItem => {
+            // Mostrar todas las noticias
+            sortedNews.forEach(newsItem => {
                 const newsElement = document.createElement('div');
                 newsElement.className = 'admin-news-item';
+                newsElement.dataset.id = newsItem.id;
                 
                 newsElement.innerHTML = `
                     <div class="admin-news-header">
                         <div class="admin-news-title">${newsItem.title}</div>
-                        <div class="admin-news-date">${newsItem.date}</div>
+                        <div class="admin-news-date">${formatDate(newsItem.date)}</div>
                     </div>
                     <div class="admin-news-category">${newsItem.category}</div>
                     <div class="admin-news-excerpt">${newsItem.excerpt || newsItem.description.substring(0, 100)}...</div>
+                    <div class="admin-news-actions" style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn btn-small edit-news-btn" style="background-color: #ff9800; color: white; padding: 5px 10px; font-size: 0.8rem;">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-small delete-news-btn" style="background-color: #f44336; color: white; padding: 5px 10px; font-size: 0.8rem;">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </div>
                 `;
+                
+                // Botón eliminar
+                const deleteBtn = newsElement.querySelector('.delete-news-btn');
+                deleteBtn.addEventListener('click', () => {
+                    if (confirm(`¿Eliminar la noticia "${newsItem.title}"?`)) {
+                        deleteNews(newsItem.id);
+                        newsElement.remove();
+                        updateCategories();
+                        filterNews();
+                        renderNews();
+                        renderCategories();
+                        updateNewsCount();
+                        updateAdminStats();
+                        showMessage('Noticia eliminada', 'success');
+                    }
+                });
+                
+                // Botón editar (simbólico - muestra datos)
+                const editBtn = newsElement.querySelector('.edit-news-btn');
+                editBtn.addEventListener('click', () => {
+                    alert(`Para editar esta noticia, elimínela y créela nuevamente.\n\nTítulo: ${newsItem.title}\nCategoría: ${newsItem.category}\nFecha: ${newsItem.date}`);
+                });
                 
                 adminNewsList.appendChild(newsElement);
             });
         }
 
         function updateAdminStats() {
-            const totalNewsElement = document.getElementById('admin-total-news');
-            const totalCategoriesElement = document.getElementById('admin-total-categories');
-            const lastUpdateElement = document.getElementById('last-update');
-            
-            if (totalNewsElement) {
-                totalNewsElement.textContent = news.length;
-            }
-            
-            if (totalCategoriesElement) {
-                totalCategoriesElement.textContent = categories.size;
-            }
-            
-            if (lastUpdateElement) {
-                lastUpdateElement.textContent = new Date().toLocaleTimeString('es-ES');
+            const currentNewsCount = document.getElementById('current-news-count');
+            if (currentNewsCount) {
+                currentNewsCount.textContent = news.length;
             }
         }
 
-        // =============== FUNCIONES AUXILIARES ===============
+        function showMessage(message, type = 'info') {
+            const statusDiv = document.getElementById('form-status') || document.getElementById('export-status');
+            if (statusDiv) {
+                statusDiv.innerHTML = `<div class="${type}">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i> 
+                    ${message}
+                </div>`;
+                
+                // Auto-ocultar después de 5 segundos
+                setTimeout(() => {
+                    if (statusDiv.innerHTML.includes(message)) {
+                        statusDiv.innerHTML = '';
+                    }
+                }, 5000);
+            }
+        }
+
+        // =============== FUNCIONES DE NAVEGACIÓN ===============
         function initNavigation() {
             const hamburger = document.querySelector('.hamburger');
             const navMenu = document.querySelector('.nav-menu');
@@ -1269,11 +1778,6 @@ ${newsData.source}</pre>
                     filterNews();
                     renderNews();
                 });
-            }
-            
-            const retryBtn = document.getElementById('retry-load-btn');
-            if (retryBtn) {
-                retryBtn.addEventListener('click', loadNewsFromGoogleSheets);
             }
         }
 
@@ -1310,15 +1814,17 @@ ${newsData.source}</pre>
                 <div class="modal-news-content">
                     <div class="modal-meta">
                         <div class="modal-category">${newsItem.category}</div>
-                        <div><i class="fas fa-calendar"></i> ${newsItem.date}</div>
-                        <div><i class="fas fa-user"></i> ${newsItem.source}</div>
+                        <div><i class="fas fa-calendar"></i> ${formatDate(newsItem.date)}</div>
+                        <div><i class="fas fa-user"></i> ${newsItem.author || newsItem.source}</div>
                         ${newsItem.country ? `<div><i class="fas fa-globe"></i> ${newsItem.country}</div>` : ''}
                     </div>
                     
+                    ${newsItem.image ? `
                     <div class="modal-image">
                         <img src="${newsItem.image}" alt="${newsItem.title}"
                              onerror="this.src='${getDefaultImage(newsItem.category)}'">
                     </div>
+                    ` : ''}
                     
                     <div class="modal-body">
                         ${newsItem.content.split('\n').map(paragraph => 
@@ -1353,24 +1859,6 @@ ${newsData.source}</pre>
             document.body.style.overflow = 'auto';
         }
 
-        function updateNewsCount() {
-            const totalNewsElement = document.getElementById('total-news');
-            if (totalNewsElement) {
-                totalNewsElement.textContent = news.length;
-            }
-        }
-
-        function loadMoreNews() {
-            currentPage++;
-            renderNews();
-            
-            // Scroll suave a las nuevas noticias
-            const newsGrid = document.getElementById('news-grid');
-            if (newsGrid && newsGrid.lastElementChild) {
-                newsGrid.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }
-
         function shareNews() {
             if (!window.currentNewsItem) return;
             
@@ -1385,37 +1873,8 @@ ${newsData.source}</pre>
                     url: shareUrl
                 });
             } else {
-                // Fallback
                 navigator.clipboard.writeText(`${shareText}: ${shareUrl}`);
-                alert('Enlace copiado al portapapeles');
-            }
-        }
-
-        function showLoading(show) {
-            const loadingElement = document.getElementById('loading-news');
-            const errorElement = document.getElementById('error-news');
-            
-            if (loadingElement) {
-                loadingElement.style.display = show ? 'block' : 'none';
-            }
-            
-            if (errorElement) {
-                errorElement.style.display = 'none';
-            }
-        }
-
-        function showError(message) {
-            const loadingElement = document.getElementById('loading-news');
-            const errorElement = document.getElementById('error-news');
-            const errorMessage = document.getElementById('error-message');
-            
-            if (loadingElement) {
-                loadingElement.style.display = 'none';
-            }
-            
-            if (errorElement && errorMessage) {
-                errorMessage.textContent = message;
-                errorElement.style.display = 'block';
+                alert('Enlace copiado al portapapeles. Comparte con tus amigos.');
             }
         }
 
@@ -1440,7 +1899,6 @@ ${newsData.source}</pre>
 
         window.openNewsModal = openNewsModal;
         window.closeNewsModal = closeNewsModal;
-        window.loadNewsFromGoogleSheets = loadNewsFromGoogleSheets;
     </script>
 </body>
 </html>
