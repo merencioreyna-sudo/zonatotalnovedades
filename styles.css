@@ -707,11 +707,6 @@ h2.section-title {
     font-size: 0.9rem;
 }
 
-.sheet-link {
-    margin-top: 20px;
-    text-align: center;
-}
-
 /* Panel Admin */
 .admin-header {
     display: flex;
@@ -810,11 +805,6 @@ h2.section-title {
     color: var(--text-color);
 }
 
-#news-count {
-    color: var(--accent-orange);
-    font-weight: 600;
-}
-
 .admin-news-list {
     max-height: 400px;
     overflow-y: auto;
@@ -863,69 +853,6 @@ h2.section-title {
     font-size: 0.9rem;
     line-height: 1.5;
     margin-top: 10px;
-}
-
-/* Stats Tab */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    background-color: var(--medium-gray);
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
-    border: 2px solid var(--primary-blue);
-}
-
-.stat-icon {
-    font-size: 2rem;
-    color: var(--accent-orange);
-    margin-bottom: 15px;
-}
-
-.stat-info h5 {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 10px;
-}
-
-.stat-number {
-    font-size: 2rem;
-    color: var(--text-color);
-    font-weight: 700;
-}
-
-.admin-instructions {
-    background-color: var(--medium-gray);
-    padding: 25px;
-    border-radius: 8px;
-    border-left: 4px solid var(--accent-orange);
-}
-
-.admin-instructions h5 {
-    color: var(--text-color);
-    margin-bottom: 15px;
-}
-
-.admin-instructions ol {
-    margin-left: 20px;
-    margin-bottom: 15px;
-    color: var(--text-secondary);
-}
-
-.admin-instructions li {
-    margin-bottom: 10px;
-}
-
-.note {
-    color: var(--accent-orange);
-    font-size: 0.9rem;
-    font-style: italic;
-    margin-top: 15px;
 }
 
 /* Footer */
@@ -1114,9 +1041,5 @@ h2.section-title {
     
     .modal-actions {
         flex-direction: column;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
     }
 }
