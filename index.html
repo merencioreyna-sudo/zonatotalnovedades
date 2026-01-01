@@ -3,619 +3,1250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zona Total Novedades - Noticias Nacionales e Internacionales</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>Zona Total - Noticias</title>
+    
+    <!-- Estilos CSS -->
+    <style>
+        /* ============================================
+           ESTILOS COMPLETOS - ZONA TOTAL NOTICIAS
+           ============================================ */
+        
+        /* Reset y estilos base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+            background-size: cover;
+        }
+        
+        .logo-container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Contadores */
+        .counters {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 30px 20px;
+            background: white;
+            margin: 30px auto;
+            max-width: 1200px;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            flex-wrap: wrap;
+        }
+        
+        .counter-item {
+            text-align: center;
+            padding: 15px 25px;
+            min-width: 150px;
+        }
+        
+        .counter-number {
+            display: block;
+            font-size: 3rem;
+            font-weight: 800;
+            color: #1a2980;
+            margin-bottom: 5px;
+        }
+        
+        .counter-label {
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Controles */
+        .controls {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+        }
+        
+        .search-container {
+            display: flex;
+            max-width: 500px;
+            margin: 0 auto 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 50px;
+            overflow: hidden;
+        }
+        
+        #search-input {
+            flex-grow: 1;
+            padding: 18px 25px;
+            border: none;
+            font-size: 1.1rem;
+            outline: none;
+            background: white;
+        }
+        
+        #search-btn {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            border: none;
+            padding: 0 35px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #search-btn:hover {
+            background: linear-gradient(135deg, #26d0ce, #1a2980);
+        }
+        
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: white;
+            border: 2px solid #1a2980;
+            color: #1a2980;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: #1a2980;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        /* Secciones */
+        section {
+            max-width: 1200px;
+            margin: 0 auto 60px;
+            padding: 0 20px;
+        }
+        
+        section h2 {
+            font-size: 2rem;
+            color: #1a2980;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #26d0ce;
+            display: inline-block;
+        }
+        
+        /* Noticias Destacadas */
+        .featured-news {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .featured-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+            border: 1px solid #eaeaea;
+            transition: all 0.4s ease;
+            height: 100%;
+        }
+        
+        .featured-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+        
+        .featured-image {
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+        }
+        
+        .featured-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+        
+        .featured-card:hover .featured-image img {
+            transform: scale(1.1);
+        }
+        
+        .featured-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        .featured-content {
+            padding: 25px;
+        }
+        
+        .featured-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 15px 0;
+            color: #222;
+            line-height: 1.4;
+        }
+        
+        .featured-description {
+            color: #555;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .featured-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .read-more {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .read-more:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(26, 41, 128, 0.3);
+        }
+        
+        .news-priority {
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        
+        .news-priority.alta {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white;
+        }
+        
+        .news-priority.media {
+            background: linear-gradient(135deg, #ffa726, #ff9800);
+            color: white;
+        }
+        
+        .news-priority.baja {
+            background: linear-gradient(135deg, #66bb6a, #4caf50);
+            color: white;
+        }
+        
+        /* Todas las noticias */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .news-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eaeaea;
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .news-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .news-image {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+        }
+        
+        .news-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .news-card:hover .news-image img {
+            transform: scale(1.1);
+        }
+        
+        .category-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 18px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1a2980;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .news-content {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .news-meta {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .news-country {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .news-date {
+            color: #666;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .news-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0 0 15px 0;
+            color: #222;
+            line-height: 1.4;
+            flex-grow: 1;
+        }
+        
+        .news-description {
+            color: #555;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+        
+        .news-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+        
+        .read-more-btn {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        
+        .read-more-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(26, 41, 128, 0.3);
+        }
+        
+        .priority-badge {
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        
+        .priority-badge.alta {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .priority-badge.media {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .priority-badge.baja {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 25px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.4s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            padding: 30px;
+            border-bottom: 2px solid #f0f0f0;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            border-radius: 25px 25px 0 0;
+        }
+        
+        .modal-meta {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .modal-category, .modal-country, .modal-date {
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        
+        .modal-category {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .modal-country {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .modal-date {
+            background: #f5f5f5;
+            color: #666;
+        }
+        
+        .modal-priority {
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .modal-priority.alta {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .modal-priority.media {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .modal-priority.baja {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .modal-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0;
+            color: #222;
+            line-height: 1.3;
+            padding-right: 60px;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            background: none;
+            border: none;
+            font-size: 2.5rem;
+            color: #666;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: #f5f5f5;
+            color: #333;
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 30px;
+        }
+        
+        .modal-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .modal-description, .modal-full-content {
+            margin-bottom: 30px;
+        }
+        
+        .modal-description h3, .modal-full-content h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #1a2980;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #26d0ce;
+        }
+        
+        .modal-description p, .modal-full-content p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 20px;
+        }
+        
+        .modal-source {
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #1a2980;
+            margin-top: 30px;
+            font-size: 1rem;
+            color: #555;
+        }
+        
+        .modal-source strong {
+            color: #1a2980;
+        }
+        
+        /* Mensajes */
+        .no-news-message, .error-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin: 50px auto;
+            max-width: 600px;
+        }
+        
+        .no-news-message h3, .error-message h3 {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        
+        .no-news-message p, .error-message p {
+            color: #888;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .retry-btn {
+            margin-top: 30px;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+        
+        .retry-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(26, 41, 128, 0.3);
+        }
+        
+        /* Animaciones */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .news-card, .featured-card {
+            animation: fadeInUp 0.6s ease;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .counters {
+                gap: 20px;
+                padding: 20px;
+            }
+            
+            .counter-item {
+                min-width: 120px;
+            }
+            
+            .counter-number {
+                font-size: 2.5rem;
+            }
+            
+            .featured-news,
+            .news-grid {
+                grid-template-columns: 1fr;
+                gap: 25px;
+            }
+            
+            .modal-content {
+                margin: 10px;
+                max-height: 95vh;
+            }
+            
+            .modal-title {
+                font-size: 1.8rem;
+                padding-right: 50px;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+            
+            section h2 {
+                font-size: 1.7rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .counter-number {
+                font-size: 2rem;
+            }
+            
+            .filter-btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            #search-input {
+                padding: 15px 20px;
+                font-size: 1rem;
+            }
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 0.95rem;
+            background: white;
+            margin-top: 50px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Sincronización */
+        .sync-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            margin-top: 30px;
+            border-radius: 10px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
 </head>
 <body>
-    <!-- Header & Navigation -->
-    <header class="header">
-        <div class="container">
-            <nav class="navbar">
-                <div class="logo" id="site-logo">
-                    <div class="logo-icon">
-                        <i class="fas fa-newspaper"></i>
-                    </div>
-                    <span class="logo-text">Zona Total Novedades</span>
-                </div>
-                
-                <ul class="nav-menu">
-                    <li><a href="#home" class="nav-link active">Inicio</a></li>
-                    <li><a href="#news" class="nav-link">Noticias</a></li>
-                    <li><a href="#categories" class="nav-link">Categorías</a></li>
-                    <li><a href="#about" class="nav-link">Acerca</a></li>
-                    <li><a href="#" id="admin-access-btn" class="nav-link admin-access">
-                        <i class="fas fa-user-cog"></i> Admin
-                    </a></li>
-                </ul>
-                
-                <div class="hamburger">
-                    <span class="bar"></span>
-                    <span class="bar"></span>
-                    <span class="bar"></span>
-                </div>
-            </nav>
+    <!-- Header -->
+    <header>
+        <div class="logo-container">
+            <h1>Zona Total Noticias</h1>
+            <p>Noticias en tiempo real • Actualizadas automáticamente desde Google Sheets</p>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="hero-title">Mantente <span class="accent-gradient">Informado</span> en Todo Momento</h1>
-                <p class="hero-subtitle">Las noticias más relevantes e importantes a nivel nacional e internacional, actualizadas minuto a minuto.</p>
-                
-                <div class="hero-buttons">
-                    <a href="#news" class="btn btn-primary">Ver Noticias</a>
-                    <a href="#categories" class="btn btn-secondary">Explorar Categorías</a>
-                </div>
-            </div>
-            
-            <div class="hero-stats">
-                <div class="stat">
-                    <div class="stat-number" id="total-news">0</div>
-                    <div class="stat-text">Noticias Disponibles</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">7</div>
-                    <div class="stat-text">Categorías</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">24/7</div>
-                    <div class="stat-text">Actualizaciones</div>
-                </div>
+    <!-- Contadores de noticias -->
+    <div class="counters">
+        <div class="counter-item">
+            <span class="counter-number" id="total-news">0</span>
+            <span class="counter-label">Noticias Totales</span>
+        </div>
+        <div class="counter-item">
+            <span class="counter-number" id="categories-count">0</span>
+            <span class="counter-label">Categorías</span>
+        </div>
+        <div class="counter-item">
+            <span class="counter-number" id="countries-count">0</span>
+            <span class="counter-label">Países</span>
+        </div>
+    </div>
+
+    <!-- Controles de búsqueda y filtros -->
+    <div class="controls">
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="🔍 Buscar noticias por título, categoría o país...">
+            <button id="search-btn">Buscar</button>
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterByCategory('all')">Todas las Noticias</button>
+            <button class="filter-btn" onclick="filterByCategory('Nacional')">Nacionales</button>
+            <button class="filter-btn" onclick="filterByCategory('Internacional')">Internacionales</button>
+            <button class="filter-btn" onclick="filterByCategory('Deportes')">Deportes</button>
+            <button class="filter-btn" onclick="filterByCategory('Cultura')">Cultura</button>
+        </div>
+    </div>
+
+    <!-- Noticias Destacadas -->
+    <section class="featured-section">
+        <h2>⭐ Noticias Destacadas</h2>
+        <div class="featured-news" id="featured-news">
+            <!-- Las noticias destacadas se cargan aquí automáticamente -->
+            <div class="no-news-message">
+                <h3>Cargando noticias destacadas...</h3>
+                <p>Las noticias con prioridad ALTA aparecerán aquí</p>
             </div>
         </div>
     </section>
 
-    <!-- Categories Section -->
-    <section class="categories-section" id="categories">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Categorías de Noticias</h2>
-                <p class="section-subtitle">Encuentra las noticias que más te interesan</p>
-            </div>
-            
-            <div class="categories-grid">
-                <div class="category-card" data-category="nacional">
-                    <div class="category-icon">
-                        <i class="fas fa-flag"></i>
-                    </div>
-                    <h3>Nacional</h3>
-                    <p>Noticias relevantes de nuestro país</p>
-                    <span class="recipe-count" id="count-nacional">0 noticias</span>
-                </div>
-                
-                <div class="category-card" data-category="internacional">
-                    <div class="category-icon">
-                        <i class="fas fa-globe-americas"></i>
-                    </div>
-                    <h3>Internacional</h3>
-                    <p>Acontecimientos importantes a nivel mundial</p>
-                    <span class="recipe-count" id="count-internacional">0 noticias</span>
-                </div>
-                
-                <div class="category-card" data-category="economia">
-                    <div class="category-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3>Economía</h3>
-                    <p>Mercados, finanzas y economía global</p>
-                    <span class="recipe-count" id="count-economia">0 noticias</span>
-                </div>
-                
-                <div class="category-card" data-category="tecnologia">
-                    <div class="category-icon">
-                        <i class="fas fa-microchip"></i>
-                    </div>
-                    <h3>Tecnología</h3>
-                    <p>Innovación, gadgets y avances tecnológicos</p>
-                    <span class="recipe-count" id="count-tecnologia">0 noticias</span>
-                </div>
-                
-                <div class="category-card" data-category="deportes">
-                    <div class="category-icon">
-                        <i class="fas fa-futbol"></i>
-                    </div>
-                    <h3>Deportes</h3>
-                    <p>Eventos deportivos y competencias</p>
-                    <span class="recipe-count" id="count-deportes">0 noticias</span>
-                </div>
-                
-                <div class="category-card" data-category="cultura">
-                    <div class="category-icon">
-                        <i class="fas fa-theater-masks"></i>
-                    </div>
-                    <h3>Cultura</h3>
-                    <p>Arte, cine, música y entretenimiento</p>
-                    <span class="recipe-count" id="count-cultura">0 noticias</span>
-                </div>
-                
-                <div class="category-card" data-category="celebridades">
-                    <div class="category-icon">
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <h3>Celebridades</h3>
-                    <p>Famosos, farándula, artistas y espectáculos</p>
-                    <span class="recipe-count" id="count-celebridades">0 noticias</span>
-                </div>
+    <!-- Todas las Noticias -->
+    <section class="all-news-section">
+        <h2>📰 Todas las Noticias</h2>
+        <div class="news-grid" id="news-grid">
+            <!-- Todas las noticias se cargan aquí automáticamente -->
+            <div class="no-news-message">
+                <h3>Cargando noticias...</h3>
+                <p>Por favor espera mientras se cargan las noticias desde Google Sheets</p>
+                <div class="retry-btn" onclick="loadNews()">Reintentar Carga</div>
             </div>
         </div>
     </section>
 
-    <!-- News Section -->
-    <section class="recipes-section" id="news">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Últimas Noticias</h2>
-                <p class="section-subtitle">Las noticias más importantes del momento</p>
-            </div>
-            
-            <!-- Filters -->
-            <div class="filters">
-                <div class="filter-buttons" id="filter-buttons">
-                    <button class="filter-btn active" data-category="todos">Todas</button>
-                    <button class="filter-btn" data-category="nacional">Nacional</button>
-                    <button class="filter-btn" data-category="internacional">Internacional</button>
-                    <button class="filter-btn" data-category="economia">Economía</button>
-                    <button class="filter-btn" data-category="tecnologia">Tecnología</button>
-                    <button class="filter-btn" data-category="deportes">Deportes</button>
-                    <button class="filter-btn" data-category="cultura">Cultura</button>
-                    <button class="filter-btn" data-category="celebridades">Celebridades</button>
-                </div>
-                
-                <div class="search-box">
-                    <input type="text" id="search-input" placeholder="Buscar noticias por título o descripción...">
-                    <i class="fas fa-search"></i>
-                </div>
-            </div>
-            
-            <!-- Loading State -->
-            <div id="loading-recipes" class="loading-state">
-                <div class="loading-spinner">
-                    <i class="fas fa-newspaper fa-spin"></i>
-                </div>
-                <p>Cargando noticias desde Google Sheets...</p>
-            </div>
-            
-            <!-- Error State -->
-            <div id="error-recipes" class="error-state">
-                <div class="error-content">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Error al cargar las noticias</h3>
-                    <p id="error-message"></p>
-                    <button class="btn btn-primary" id="retry-load-btn">
-                        <i class="fas fa-redo"></i> Reintentar
-                    </button>
-                    <button class="btn btn-secondary" id="load-local-btn" style="margin-top: 10px;">
-                        <i class="fas fa-database"></i> Usar datos locales
-                    </button>
-                </div>
-            </div>
-            
-            <!-- News Grid -->
-            <div class="recipes-grid" id="recipes-grid">
-                <!-- News will be loaded dynamically -->
-            </div>
-        </div>
-    </section>
+    <!-- Información de sincronización -->
+    <div class="sync-info">
+        🔄 Sincronizado con Google Sheets • Se actualiza automáticamente cada 30 segundos
+    </div>
 
-    <!-- About Section -->
-    <section class="about-section" id="about">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">¿Por Qué Leernos?</h2>
-                <p class="section-subtitle">Información verificada y actualizada constantemente</p>
-            </div>
-            
-            <div class="about-content">
-                <div class="about-grid">
-                    <div class="about-card">
-                        <div class="about-icon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <h3>Información Verificada</h3>
-                        <p>Todas nuestras noticias son verificadas por nuestro equipo editorial antes de su publicación.</p>
-                    </div>
-                    
-                    <div class="about-card">
-                        <div class="about-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <h3>Actualización Constante</h3>
-                        <p>Mantenemos nuestras noticias actualizadas minuto a minuto para que siempre estés informado.</p>
-                    </div>
-                    
-                    <div class="about-card">
-                        <div class="about-icon">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
-                        <h3>Imparcialidad</h3>
-                        <p>Nos comprometemos a presentar las noticias de manera objetiva y balanceada.</p>
-                    </div>
-                </div>
+    <!-- Modal para ver noticia completa -->
+    <div id="news-modal" class="modal">
+        <div class="modal-content">
+            <div id="modal-news-content">
+                <!-- El contenido de la noticia completa se carga aquí -->
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <h3>Zona Total Novedades</h3>
-                    <p>Tu fuente confiable de noticias nacionales e internacionales, verificadas y actualizadas.</p>
-                </div>
-                
-                <div class="footer-info">
-                    <p><i class="fas fa-envelope"></i> contacto@zonatotalnovedades.com</p>
-                    <p><i class="fas fa-phone"></i> +1 800-NOTICIAS</p>
-                </div>
-            </div>
-            
-            <div class="footer-bottom">
-                <p>&copy; 2025 Zona Total Novedades. Todos los derechos reservados.</p>
-                <p class="footer-note">Para ciudadanos informados del mundo</p>
-            </div>
-        </div>
+    <footer>
+        <p>Zona Total Noticias • Sistema de gestión de noticias mediante Google Sheets</p>
+        <p>© 2024 - Todas las noticias se cargan y actualizan automáticamente</p>
     </footer>
 
-    <!-- News Modal -->
-    <div class="modal-overlay" id="recipe-modal">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3 id="modal-recipe-title">Detalles de la Noticia</h3>
-                <button class="modal-close" id="modal-close">&times;</button>
-            </div>
-            <div class="modal-content">
-                <div id="modal-recipe-content">
-                    <!-- News details will be loaded here -->
-                </div>
-                <div class="modal-actions">
-                    <button class="btn btn-secondary" id="close-modal-btn">
-                        <i class="fas fa-times"></i> Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Panel -->
-    <div class="admin-overlay" id="admin-overlay">
-        <div class="admin-container">
-            <!-- Admin Login -->
-            <div class="admin-login" id="admin-login">
-                <div class="login-header">
-                    <h3><i class="fas fa-user-cog"></i> Acceso Administrativo</h3>
-                    <p>Ingresa tus credenciales para acceder al panel de administración</p>
-                </div>
-                
-                <form class="login-form" id="login-form">
-                    <div class="form-group">
-                        <label for="admin-username">Usuario</label>
-                        <input type="text" id="admin-username" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="admin-password">Contraseña</label>
-                        <input type="password" id="admin-password" required>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Ingresar</button>
-                        <button type="button" class="btn btn-secondary" id="cancel-login-btn">Cancelar</button>
-                    </div>
-                </form>
-                
-                <div class="login-hint" id="login-hint">
-                    <strong>Credenciales de prueba:</strong><br>
-                    Usuario: <code>admin</code><br>
-                    Contraseña: <code>admin123</code>
-                    <div class="hint-note">Estas credenciales son para demostración</div>
-                </div>
-                
-                <button id="show-creds-btn" class="btn btn-secondary">Mostrar Credenciales</button>
-            </div>
+    <!-- JavaScript -->
+    <script>
+        // ============================================
+        // SCRIPT COMPLETO - ZONA TOTAL NOTICIAS
+        // ============================================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Zona Total Noticias - Iniciando sistema...');
+            loadNews();
             
-            <!-- Admin Panel -->
-            <div class="admin-panel" id="admin-panel" style="display: none;">
-                <div class="admin-header">
-                    <h3><i class="fas fa-user-cog"></i> Panel de Administración</h3>
-                    <button class="btn btn-small" id="logout-btn">Cerrar Sesión</button>
-                </div>
+            // Sincronizar automáticamente cada 30 segundos
+            setInterval(syncWithGoogleSheets, 30000);
+            
+            // Configurar búsqueda
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            
+            if (searchInput && searchBtn) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchNews();
+                    }
+                });
                 
-                <div class="admin-tabs">
-                    <button class="tab-btn active" data-tab="news-tab">Noticias</button>
-                    <button class="tab-btn" data-tab="add-news-tab">Agregar Noticia</button>
-                    <button class="tab-btn" data-tab="edit-news-tab">Editar Noticia</button>
-                    <button class="tab-btn" data-tab="sync-tab">Sincronizar</button>
-                    <button class="tab-btn" data-tab="settings-tab">Configuración</button>
-                </div>
+                searchBtn.addEventListener('click', searchNews);
+            }
+        });
+        
+        // URL de TU Google Sheets
+        const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ/gviz/tq?tqx=out:csv&sheet=Noticias';
+        
+        // Variable global para todas las noticias
+        let allNews = [];
+        
+        // Función principal para cargar noticias
+        async function loadNews() {
+            console.log('📥 Conectando a Google Sheets...');
+            
+            try {
+                const response = await fetch(GOOGLE_SHEETS_URL);
                 
-                <!-- News Management Tab -->
-                <div class="tab-content active" id="news-tab">
-                    <h4>Gestión de Noticias</h4>
-                    <div class="admin-recipes-list" id="admin-recipes-list">
-                        <!-- News will be loaded here -->
+                if (!response.ok) {
+                    throw new Error(`Error de conexión: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                console.log('✅ Datos recibidos de Google Sheets');
+                
+                // Parsear el CSV
+                allNews = parseCSV(csvText);
+                console.log(`📊 ${allNews.length} noticias cargadas correctamente`);
+                
+                if (allNews.length > 0) {
+                    displayNews(allNews);
+                    updateCounters(allNews);
+                } else {
+                    showMessage('📭 No hay noticias disponibles. Agrega noticias en Google Sheets.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showMessage('⚠️ Error conectando a Google Sheets. Verifica la conexión.');
+            }
+        }
+        
+        // Función para parsear CSV
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            
+            if (lines.length < 2) return [];
+            
+            // Obtener encabezados
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            
+            const news = [];
+            
+            // Procesar cada línea
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                const values = [];
+                let currentValue = '';
+                let insideQuotes = false;
+                
+                // Parsear manualmente para manejar comas dentro de campos
+                for (let char of line) {
+                    if (char === '"') {
+                        insideQuotes = !insideQuotes;
+                    } else if (char === ',' && !insideQuotes) {
+                        values.push(currentValue.trim().replace(/"/g, ''));
+                        currentValue = '';
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                values.push(currentValue.trim().replace(/"/g, ''));
+                
+                // Crear objeto de noticia
+                if (values.length >= headers.length) {
+                    const newsItem = {};
+                    headers.forEach((header, index) => {
+                        newsItem[header] = values[index] || '';
+                    });
+                    
+                    // Validar que tenga al menos un título
+                    if (newsItem.Título && newsItem.Título.trim() !== '') {
+                        news.push(newsItem);
+                    }
+                }
+            }
+            
+            return news;
+        }
+        
+        // Mostrar noticias en la página
+        function displayNews(newsArray) {
+            const featuredContainer = document.getElementById('featured-news');
+            const newsGrid = document.getElementById('news-grid');
+            
+            if (!featuredContainer || !newsGrid) return;
+            
+            // Limpiar contenedores
+            featuredContainer.innerHTML = '';
+            newsGrid.innerHTML = '';
+            
+            if (newsArray.length === 0) {
+                showMessage('No hay noticias para mostrar.');
+                return;
+            }
+            
+            // Separar noticias destacadas (prioridad Alta)
+            const featuredNews = newsArray.filter(news => 
+                news.Prioridad && news.Prioridad.toLowerCase() === 'alta'
+            );
+            
+            const regularNews = newsArray.filter(news => 
+                !news.Prioridad || news.Prioridad.toLowerCase() !== 'alta'
+            );
+            
+            // Mostrar noticias destacadas
+            if (featuredNews.length > 0) {
+                featuredNews.slice(0, 3).forEach(news => {
+                    featuredContainer.appendChild(createFeaturedCard(news));
+                });
+            } else {
+                // Si no hay destacadas, mostrar las 3 primeras
+                newsArray.slice(0, 3).forEach(news => {
+                    featuredContainer.appendChild(createFeaturedCard(news));
+                });
+            }
+            
+            // Mostrar todas las noticias
+            newsArray.forEach(news => {
+                newsGrid.appendChild(createNewsCard(news));
+            });
+        }
+        
+        // Crear tarjeta de noticia destacada
+        function createFeaturedCard(news) {
+            const card = document.createElement('div');
+            card.className = 'featured-card';
+            
+            const imageUrl = news.Imagen || 'https://via.placeholder.com/800x400?text=Zona+Total+Noticias';
+            const category = news.Categoría || 'General';
+            const country = news.País || 'Internacional';
+            const priority = news.Prioridad || 'Media';
+            
+            card.innerHTML = `
+                <div class="featured-image">
+                    <img src="${imageUrl}" alt="${news.Título}" onerror="this.src='https://via.placeholder.com/800x400?text=Imagen+No+Disponible'">
+                    <div class="featured-badge">Destacada</div>
+                </div>
+                <div class="featured-content">
+                    <div class="news-meta">
+                        <span class="news-country">${country}</span>
+                        <span class="news-date">${news.Fecha || 'Fecha no disponible'}</span>
+                    </div>
+                    <h3 class="featured-title">${news.Título || 'Sin título'}</h3>
+                    <p class="featured-description">${news.Descripción || news.Contenido?.substring(0, 200) || 'Descripción no disponible'}...</p>
+                    <div class="featured-actions">
+                        <button class="read-more" onclick="openNewsModal('${encodeURIComponent(JSON.stringify(news))}')">
+                            📖 Leer más
+                        </button>
+                        <span class="news-priority ${priority.toLowerCase()}">
+                            ${priority}
+                        </span>
                     </div>
                 </div>
-                
-                <!-- Add News Tab -->
-                <div class="tab-content" id="add-news-tab">
-                    <h4>Agregar Nueva Noticia</h4>
-                    <form id="add-recipe-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="new-recipe-title">Título de la Noticia *</label>
-                                <input type="text" id="new-recipe-title" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="new-recipe-category">Categoría *</label>
-                                <select id="new-recipe-category" required>
-                                    <option value="">Seleccionar categoría</option>
-                                    <option value="Nacional">Nacional</option>
-                                    <option value="Internacional">Internacional</option>
-                                    <option value="Economía">Economía</option>
-                                    <option value="Tecnología">Tecnología</option>
-                                    <option value="Deportes">Deportes</option>
-                                    <option value="Cultura">Cultura</option>
-                                    <option value="Celebridades">Celebridades</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="new-recipe-image">URL de la Imagen *</label>
-                                <input type="text" id="new-recipe-image" required placeholder="https://ejemplo.com/imagen-noticia.jpg">
-                                <span class="form-hint">Sube la imagen a un servicio como ImgBB o Imgur y pega la URL aquí</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="new-recipe-country">País *</label>
-                                <input type="text" id="new-recipe-country" required placeholder="Ej: España, México, EE.UU.">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="new-recipe-date">Fecha *</label>
-                                <input type="date" id="new-recipe-date" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="new-recipe-priority">Prioridad *</label>
-                                <select id="new-recipe-priority" required>
-                                    <option value="Alta">Alta</option>
-                                    <option value="Media">Media</option>
-                                    <option value="Baja">Baja</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="new-recipe-description">Descripción Corta *</label>
-                            <textarea id="new-recipe-description" rows="3" required placeholder="Breve descripción de la noticia (máximo 200 caracteres)"></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="new-recipe-content">Contenido Completo *</label>
-                            <textarea id="new-recipe-content" rows="8" required placeholder="Escribe aquí el contenido completo de la noticia..."></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="new-recipe-source">Fuente *</label>
-                            <input type="text" id="new-recipe-source" required placeholder="URL de la fuente original o nombre del medio">
-                        </div>
-                        
-                        <!-- NUEVO: Campo para código Embed -->
-                        <div class="form-group">
-                            <label for="new-recipe-embed">Código Embed (Opcional)</label>
-                            <textarea id="new-recipe-embed" rows="4" placeholder="Pega aquí el código embed de la noticia..."></textarea>
-                            <span class="form-hint">Si la noticia tiene código embed para mostrar dentro de tu sitio, pégalo aquí</span>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Agregar Noticia</button>
-                            <button type="reset" class="btn btn-secondary">Limpiar Formulario</button>
-                        </div>
-                    </form>
-                    
-                    <div id="form-status" style="margin-top: 20px;"></div>
+            `;
+            
+            return card;
+        }
+        
+        // Crear tarjeta de noticia regular
+        function createNewsCard(news) {
+            const card = document.createElement('div');
+            card.className = 'news-card';
+            
+            const imageUrl = news.Imagen || 'https://via.placeholder.com/400x250?text=Zona+Total';
+            const category = news.Categoría || 'General';
+            const country = news.País || 'Internacional';
+            const priority = news.Prioridad || 'Media';
+            
+            card.innerHTML = `
+                <div class="news-image">
+                    <img src="${imageUrl}" alt="${news.Título}" onerror="this.src='https://via.placeholder.com/400x250?text=Imagen+No+Disponible'">
+                    <div class="category-badge">${category}</div>
                 </div>
-                
-                <!-- Edit News Tab -->
-                <div class="tab-content" id="edit-news-tab">
-                    <h4>Editar Noticia Existente</h4>
-                    <div class="form-group">
-                        <label for="edit-recipe-select">Seleccionar Noticia para Editar</label>
-                        <select id="edit-recipe-select" class="edit-select">
-                            <option value="">Cargando noticias...</option>
-                        </select>
+                <div class="news-content">
+                    <div class="news-meta">
+                        <span class="news-country">${country}</span>
+                        <span class="news-date">${news.Fecha || 'Fecha no disponible'}</span>
                     </div>
-                    
-                    <form id="edit-recipe-form" style="display: none;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="edit-recipe-title">Título de la Noticia *</label>
-                                <input type="text" id="edit-recipe-title" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recipe-category">Categoría *</label>
-                                <select id="edit-recipe-category" required>
-                                    <option value="">Seleccionar categoría</option>
-                                    <option value="Nacional">Nacional</option>
-                                    <option value="Internacional">Internacional</option>
-                                    <option value="Economía">Economía</option>
-                                    <option value="Tecnología">Tecnología</option>
-                                    <option value="Deportes">Deportes</option>
-                                    <option value="Cultura">Cultura</option>
-                                    <option value="Celebridades">Celebridades</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="edit-recipe-image">URL de la Imagen *</label>
-                                <input type="text" id="edit-recipe-image" required>
-                                <span class="form-hint">Puedes cambiar la imagen actualizando esta URL</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recipe-country">País *</label>
-                                <input type="text" id="edit-recipe-country" required>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="edit-recipe-date">Fecha *</label>
-                                <input type="date" id="edit-recipe-date" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recipe-priority">Prioridad *</label>
-                                <select id="edit-recipe-priority" required>
-                                    <option value="Alta">Alta</option>
-                                    <option value="Media">Media</option>
-                                    <option value="Baja">Baja</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="edit-recipe-description">Descripción Corta *</label>
-                            <textarea id="edit-recipe-description" rows="3" required></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="edit-recipe-content">Contenido Completo *</label>
-                            <textarea id="edit-recipe-content" rows="8" required></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="edit-recipe-source">Fuente *</label>
-                            <input type="text" id="edit-recipe-source" required>
-                        </div>
-                        
-                        <!-- NUEVO: Campo para código Embed -->
-                        <div class="form-group">
-                            <label for="edit-recipe-embed">Código Embed (Opcional)</label>
-                            <textarea id="edit-recipe-embed" rows="4" placeholder="Código embed para incrustar la noticia..."></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                            <button type="button" class="btn btn-danger" id="delete-recipe-btn">Eliminar Noticia</button>
-                            <button type="button" class="btn btn-secondary" id="cancel-edit-btn">Cancelar</button>
-                        </div>
-                    </form>
-                    
-                    <div id="edit-form-status" style="margin-top: 20px;"></div>
-                </div>
-                
-                <!-- Sync Tab -->
-                <div class="tab-content" id="sync-tab">
-                    <h4>Sincronización con Google Sheets</h4>
-                    <div class="sync-info">
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                            <h5><i class="fas fa-database"></i> Base de Datos</h5>
-                            <p><strong>Estado Google Sheets:</strong> <span id="sync-status">Desconectado</span></p>
-                            <p><strong>Noticias locales:</strong> <span id="loaded-news-count">0</span></p>
-                            <p><strong>Última carga:</strong> <span id="last-sync-time">Nunca</span></p>
-                        </div>
-                        
-                        <div class="sync-actions">
-                            <button class="btn btn-primary" id="sync-now-btn">
-                                <i class="fas fa-cloud-download-alt"></i> Cargar de Google Sheets
-                            </button>
-                            <button class="btn btn-success" id="export-news-btn">
-                                <i class="fas fa-file-export"></i> Exportar a CSV
-                            </button>
-                            <button class="btn btn-secondary" id="refresh-news-btn">
-                                <i class="fas fa-redo"></i> Actualizar Lista
-                            </button>
-                        </div>
-                        
-                        <div style="margin-top: 30px; padding: 15px; background: #e8f4fd; border-radius: 8px; border-left: 4px solid #007bff;">
-                            <h5><i class="fas fa-info-circle"></i> Instrucciones de Sincronización</h5>
-                            <ol style="margin-left: 20px; margin-top: 10px;">
-                                <li><strong>Para cargar noticias:</strong> Haz clic en "Cargar de Google Sheets"</li>
-                                <li><strong>Para guardar cambios en Google Sheets:</strong>
-                                    <ol type="a">
-                                        <li>Haz clic en "Exportar a CSV"</li>
-                                        <li>Se descargará un archivo CSV</li>
-                                        <li>Abre tu Google Sheets</li>
-                                        <li>Ve a Archivo → Importar → Subir → Selecciona el CSV</li>
-                                        <li>Reemplaza la hoja actual</li>
-                                    </ol>
-                                </li>
-                                <li><strong>Para trabajar offline:</strong> Todas las noticias se guardan localmente automáticamente</li>
-                            </ol>
-                        </div>
-                        
-                        <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
-                            <h5><i class="fas fa-lightbulb"></i> Consejo</h5>
-                            <p style="margin: 0; color: #155724;">
-                                <strong>Recomendación:</strong> Agrega todas tus noticias localmente primero. 
-                                Cuando termines, exporta el CSV y súbelo a Google Sheets de una sola vez.
-                            </p>
-                        </div>
+                    <h3 class="news-title">${news.Título || 'Sin título'}</h3>
+                    <p class="news-description">${news.Descripción || news.Contenido?.substring(0, 120) || 'Descripción no disponible'}...</p>
+                    <div class="news-actions">
+                        <button class="read-more-btn" onclick="openNewsModal('${encodeURIComponent(JSON.stringify(news))}')">
+                            📰 Leer completo
+                        </button>
+                        <span class="priority-badge ${priority.toLowerCase()}">
+                            ${priority}
+                        </span>
                     </div>
                 </div>
+            `;
+            
+            return card;
+        }
+        
+        // Abrir modal con noticia completa
+        function openNewsModal(newsJSON) {
+            try {
+                const news = JSON.parse(decodeURIComponent(newsJSON));
+                const modal = document.getElementById('news-modal');
+                const modalContent = document.getElementById('modal-news-content');
                 
-                <!-- Settings Tab -->
-                <div class="tab-content" id="settings-tab">
-                    <h4>Configuración del Sistema</h4>
-                    
-                    <div class="settings-form">
-                        <div class="form-group">
-                            <label for="google-sheets-id">ID de Google Sheets</label>
-                            <input type="text" id="google-sheets-id" placeholder="Ej: 1YAqfZadMR5O6mABhl0QbhF8scbtIW9JJPfwdED4bzDQ">
-                            <span class="form-hint">ID de tu hoja de cálculo de Google Sheets (solo lectura)</span>
+                if (!modal || !modalContent) return;
+                
+                modalContent.innerHTML = `
+                    <div class="modal-header">
+                        <div class="modal-meta">
+                            <span class="modal-category">${news.Categoría || 'General'}</span>
+                            <span class="modal-country">${news.País || 'Internacional'}</span>
+                            <span class="modal-date">${news.Fecha || ''}</span>
+                            <span class="modal-priority ${(news.Prioridad || 'media').toLowerCase()}">
+                                ${news.Prioridad || 'Normal'}
+                            </span>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="site-logo-url">URL del Logo del Sitio</label>
-                            <input type="text" id="site-logo-url" placeholder="https://ejemplo.com/logo.png">
-                            <span class="form-hint">Pega la URL de tu logo. Debe ser una imagen PNG o JPG.</span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="site-title">Título del Sitio</label>
-                            <input type="text" id="site-title" value="Zona Total Novedades">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="site-description">Descripción del Sitio</label>
-                            <textarea id="site-description" rows="3">Tu fuente confiable de noticias nacionales e internacionales, verificadas y actualizadas.</textarea>
-                        </div>
-                        
-                        <div class="preview-section">
-                            <h5>Vista Previa del Logo:</h5>
-                            <div id="logo-preview" class="logo-preview">
-                                <div class="logo-preview-default">
-                                    <i class="fas fa-newspaper"></i>
-                                    <span>Zona Total Novedades</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" id="save-settings-btn">
-                                <i class="fas fa-save"></i> Guardar Configuración
-                            </button>
-                            <button type="button" class="btn btn-secondary" id="reset-logo-btn">
-                                <i class="fas fa-undo"></i> Restaurar Logo Predeterminado
-                            </button>
-                        </div>
-                        
-                        <div id="settings-status" style="margin-top: 20px;"></div>
+                        <h2 class="modal-title">${news.Título || 'Sin título'}</h2>
+                        <button class="modal-close" onclick="closeNewsModal()">&times;</button>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+                    <div class="modal-body">
+                        ${news.Imagen ? `<img src="${news.Imagen}" alt="${news.Título}" class="modal-image" onerror="this.style.display='none'">` : ''}
+                        <div class="modal-description">
+                            <h3>Resumen</h3>
+                            <p>${news.Descripción || 'Sin descripción disponible'}</p>
+                        </div>
+                        <div class="modal-full-content">
+                            <h3>Contenido completo</h3>
+                            <p>${news.Contenido || 'Contenido no disponible'}</p>
+                        </div>
+                        ${news.Fuente ? `<div class="modal-source"><strong>Fuente:</strong> ${news.Fuente}</div>` : ''}
+                    </div>
+                `;
+                
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                
+            } catch (error) {
+                console.error('Error abriendo modal:', error);
+                alert('Error al cargar la noticia completa');
+            }
+        }
+        
+        // Cerrar modal
+        function closeNewsModal() {
+            const modal = document.getElementById('news-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+        
+        // Cerrar modal al hacer clic fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('news-modal');
+            if (event.target === modal) {
+                closeNewsModal();
+            }
+        };
+        
+        // Actualizar contadores
+        function updateCounters(newsArray) {
+            const totalElement = document.getElementById('total-news');
+            const categoriesElement = document.getElementById('categories-count');
+            const countriesElement = document.getElementById('countries-count');
+            
+            if (totalElement) {
+                totalElement.textContent = newsArray.length;
+            }
+            
+            if (categoriesElement) {
+                const categories = [...new Set(newsArray.map(n => n.Categoría).filter(Boolean))];
+                categoriesElement.textContent = categories.length;
+            }
+            
+            if (countriesElement) {
+                const countries = [...new Set(newsArray.map(n => n.País).filter(Boolean))];
+                countriesElement.textContent = countries.length;
+            }
+        }
+        
+        // Mostrar mensaje
+        function showMessage(text) {
+            const newsGrid = document.getElementById('news-grid');
+            if (newsGrid) {
+                newsGrid.innerHTML = `<div class="no-news-message"><h3>${text}</h3></div>`;
+            }
+        }
+        
+        // Sincronizar con Google Sheets
+        function syncWithGoogleSheets() {
+            console.log('🔄 Sincronizando automáticamente...');
+            loadNews();
+        }
+        
+        // Filtrar por categoría
+        function filterByCategory(category) {
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            
+            if (category === 'all') {
+                displayNews(allNews);
+            } else {
+                const filtered = allNews.filter(news => 
+                    news.Categoría && news.Categoría.toLowerCase() === category.toLowerCase()
+                );
+                displayNews(filtered);
+            }
+        }
+        
+        // Buscar noticias
+        function searchNews() {
+            const searchInput = document.getElementById('search-input');
+            const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            
+            if (!term) {
+                displayNews(allNews);
+                return;
+            }
+            
+            const filtered = allNews.filter(news => {
+                return (
+                    (news.Título && news.Título.toLowerCase().includes(term)) ||
+                    (news.Descripción && news.Descripción.toLowerCase().includes(term)) ||
+                    (news.Contenido && news.Contenido.toLowerCase().includes(term)) ||
+                    (news.Categoría && news.Categoría.toLowerCase().includes(term)) ||
+                    (news.País && news.País.toLowerCase().includes(term))
+                );
+            });
+            
+            displayNews(filtered);
+        }
+        
+        // Iniciar cuando la página cargue
+        window.onload = function() {
+            console.log('🌐 Página completamente cargada');
+            loadNews();
+        };
+    </script>
 </body>
 </html>
