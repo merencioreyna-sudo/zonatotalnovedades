@@ -7,10 +7,24 @@ const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1588681664899-f142ff2dc
 let news = [];
 let currentCategory = "todos";
 let searchQuery = "";
+let siteSettings = {
+    googleSheetsId: GOOGLE_SHEETS_ID,
+    logoUrl: '',
+    siteTitle: 'Zona Total Novedades',
+    siteDescription: 'Tu fuente confiable de noticias nacionales e internacionales, verificadas y actualizadas.',
+    contactEmail: 'contacto@zonatotalnovedades.com',
+    contactPhone: '+1 800-NOTICIAS'
+};
 
 // =============== INICIALIZACIÓN ===============
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Zona Total Novedades - Iniciando...');
+    loadSiteSettings();
+    
+    if (siteSettings.googleSheetsId) {
+        GOOGLE_SHEETS_ID = siteSettings.googleSheetsId;
+    }
+    
     loadNewsFromGoogleSheets();
     setupMobileMenu();
     setupFiltersAndSearch();
@@ -20,141 +34,165 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAdmin();
 });
 
-// =============== CARGA DE GOOGLE SHEETS - VERSIÓN MEJORADA ===============
+// =============== CONFIGURACIÓN DEL SITIO ===============
+function loadSiteSettings() {
+    try {
+        const savedSettings = localStorage.getItem('zona_total_settings');
+        if (savedSettings) {
+            siteSettings = JSON.parse(savedSettings);
+            applySiteSettings();
+        }
+    } catch (error) {
+        console.error('Error cargando configuración:', error);
+    }
+}
+
+function saveSiteSettings() {
+    try {
+        localStorage.setItem('zona_total_settings', JSON.stringify(siteSettings));
+        return true;
+    } catch (error) {
+        console.error('Error guardando configuración:', error);
+        return false;
+    }
+}
+
+function applySiteSettings() {
+    const siteLogo = document.getElementById('site-logo');
+    if (siteLogo) {
+        if (siteSettings.logoUrl && siteSettings.logoUrl.trim() !== '') {
+            siteLogo.innerHTML = `
+                <img src="${siteSettings.logoUrl}" alt="${siteSettings.siteTitle}" 
+                     style="max-height: 40px; max-width: 150px; object-fit: contain;">
+                <span class="logo-text">${siteSettings.siteTitle}</span>
+            `;
+        } else {
+            siteLogo.innerHTML = `
+                <div class="logo-icon">
+                    <i class="fas fa-newspaper"></i>
+                </div>
+                <span class="logo-text">${siteSettings.siteTitle}</span>
+            `;
+        }
+    }
+    
+    document.title = siteSettings.siteTitle;
+    
+    const footerDescription = document.querySelector('.footer-logo p');
+    if (footerDescription) {
+        footerDescription.textContent = siteSettings.siteDescription;
+    }
+    
+    const contactEmail = document.querySelector('.footer-info p:nth-child(1)');
+    const contactPhone = document.querySelector('.footer-info p:nth-child(2)');
+    
+    if (contactEmail) {
+        contactEmail.innerHTML = `<i class="fas fa-envelope"></i> ${siteSettings.contactEmail}`;
+    }
+    if (contactPhone) {
+        contactPhone.innerHTML = `<i class="fas fa-phone"></i> ${siteSettings.contactPhone}`;
+    }
+}
+
+// =============== CARGA DE GOOGLE SHEETS - CORREGIDO ===============
 async function loadNewsFromGoogleSheets() {
     try {
         console.log('📥 Cargando noticias desde Google Sheets...');
         
-        // Mostrar estado de carga
         document.getElementById('loading-recipes').style.display = 'flex';
         document.getElementById('error-recipes').style.display = 'none';
         
-        // URL de Google Sheets
         const sheetsUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
+        console.log('URL:', sheetsUrl);
         
-        console.log('URL de Google Sheets:', sheetsUrl);
-        
-        // Hacer la petición con timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        const response = await fetch(sheetsUrl, {
-            signal: controller.signal,
-            cache: 'no-store' // Evitar cache
-        });
-        
-        clearTimeout(timeoutId);
+        const response = await fetch(sheetsUrl);
         
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
         const csvText = await response.text();
-        console.log('CSV recibido:', csvText.substring(0, 500) + '...');
+        console.log('CSV recibido (primeros 500 caracteres):', csvText.substring(0, 500));
         
-        // Limpiar array de noticias
         news = [];
         
-        // Parsear CSV línea por línea
         const lines = csvText.split('\n');
+        console.log('Total líneas:', lines.length);
         
-        // Procesar cada línea
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
+            const line = lines[i];
             
-            // Saltar encabezados (primera línea)
             if (i === 0) continue;
+            if (!line || line.trim() === '') continue;
             
-            // Saltar líneas completamente vacías
-            if (!line || line === '' || line.replace(/,/g, '').trim() === '') {
-                continue;
-            }
+            const values = parseCSVRowSimple(line);
             
-            // Parsear la línea CSV
-            const values = parseCSVLine(line);
-            
-            // Asegurar que tenemos valores suficientes
             if (values.length >= 9) {
-                const title = cleanValue(values[0]);
-                const description = cleanValue(values[1]);
-                const category = cleanValue(values[2]);
-                const country = cleanValue(values[3]);
-                const date = cleanValue(values[4]);
-                const priority = cleanValue(values[5]);
-                const image = cleanValue(values[6]) || DEFAULT_IMAGE;
-                const content = cleanValue(values[7]);
-                const source = cleanValue(values[8]);
+                const title = values[0] ? values[0].trim() : '';
+                const description = values[1] ? values[1].trim() : '';
+                const category = values[2] ? values[2].trim() : 'Nacional';
+                const country = values[3] ? values[3].trim() : 'No especificado';
+                const date = values[4] ? values[4].trim() : new Date().toISOString().split('T')[0];
+                const priority = values[5] ? values[5].trim() : 'Media';
+                const image = values[6] ? values[6].trim() : DEFAULT_IMAGE;
+                const content = values[7] ? values[7].trim() : '';
+                const source = values[8] ? values[8].trim() : 'Fuente no disponible';
                 
-                // Solo agregar si tiene título válido
                 if (title && title !== '' && title !== 'null') {
                     const newsItem = {
                         id: news.length + 1,
                         title: title,
                         description: description || 'Sin descripción',
-                        category: category || 'Nacional',
-                        country: country || 'No especificado',
-                        date: date || new Date().toISOString().split('T')[0],
-                        priority: priority || 'Media',
+                        category: category,
+                        country: country,
+                        date: date,
+                        priority: priority,
                         image: fixImageUrl(image),
                         content: content || 'Contenido no disponible',
-                        source: source || 'Fuente no disponible',
-                        embedCode: values[9] ? cleanValue(values[9]) : ''
+                        source: source,
+                        embedCode: values[9] ? values[9].trim() : ''
                     };
                     
                     news.push(newsItem);
-                    console.log(`✅ Noticia ${news.length}: "${title.substring(0, 50)}..."`);
+                    console.log(`✅ Noticia cargada: "${title.substring(0, 50)}..."`);
                 }
             }
         }
         
         console.log(`✅ Total noticias cargadas: ${news.length}`);
         
-        // Actualizar interfaz
+        if (news.length === 0) {
+            console.log('⚠️ No se encontraron noticias. Verifica el formato del CSV.');
+        }
+        
         updateNewsCounts();
         renderNews();
         
-        // Ocultar estado de carga
         document.getElementById('loading-recipes').style.display = 'none';
-        
-        // Actualizar estado en admin
         updateSyncStatus(true, news.length);
         
-        // Mostrar alerta si no hay noticias
-        if (news.length === 0) {
-            document.getElementById('error-recipes').style.display = 'flex';
-            document.getElementById('error-message').textContent = 
-                'No se encontraron noticias en Google Sheets. Verifica que tengas datos.';
-        }
-        
     } catch (error) {
-        console.error('❌ Error cargando desde Google Sheets:', error);
+        console.error('❌ Error:', error);
         
-        // Mostrar error
         document.getElementById('loading-recipes').style.display = 'none';
         document.getElementById('error-recipes').style.display = 'flex';
         document.getElementById('error-message').textContent = 
-            `Error: ${error.message}. Verifica el ID de Google Sheets o tu conexión.`;
+            `Error: ${error.message}`;
         
         updateSyncStatus(false, 0);
     }
 }
 
-// Función mejorada para parsear CSV
-function parseCSVLine(line) {
+function parseCSVRowSimple(row) {
     const result = [];
     let current = '';
     let inQuotes = false;
     
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
+    for (let i = 0; i < row.length; i++) {
+        const char = row[i];
         
         if (char === '"') {
-            if (inQuotes && line[i + 1] === '"') {
-                current += '"';
-                i++;
-            } else {
-                inQuotes = !inQuotes;
-            }
+            inQuotes = !inQuotes;
         } else if (char === ',' && !inQuotes) {
             result.push(current);
             current = '';
@@ -164,19 +202,15 @@ function parseCSVLine(line) {
     }
     
     result.push(current);
-    return result;
-}
-
-function cleanValue(value) {
-    if (!value) return '';
-    // Limpiar comillas y espacios
-    let cleaned = value.trim();
-    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-        cleaned = cleaned.slice(1, -1);
-    }
-    // Reemplazar comillas dobles
-    cleaned = cleaned.replace(/""/g, '"');
-    return cleaned;
+    
+    return result.map(value => {
+        let cleaned = value.trim();
+        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+            cleaned = cleaned.slice(1, -1);
+        }
+        cleaned = cleaned.replace(/""/g, '"');
+        return cleaned;
+    });
 }
 
 function fixImageUrl(url) {
@@ -187,7 +221,6 @@ function fixImageUrl(url) {
     let fixedUrl = url.trim();
     fixedUrl = fixedUrl.replace(/^"+|"+$/g, '');
     
-    // Si la URL no tiene http:// o https://, agregarlo
     if (fixedUrl && !fixedUrl.startsWith('http://') && !fixedUrl.startsWith('https://')) {
         fixedUrl = 'https://' + fixedUrl;
     }
@@ -215,18 +248,72 @@ function updateSyncStatus(success, count) {
     }
 }
 
-// =============== CONTADORES - VERSIÓN SIMPLE ===============
+// =============== FUNCIÓN DE EXPORTACIÓN CSV ===============
+function exportAllToCSV() {
+    if (news.length === 0) {
+        alert('No hay noticias para exportar.');
+        return;
+    }
+    
+    try {
+        const headers = ['Título', 'Descripción', 'Categoría', 'País', 'Fecha', 'Prioridad', 'Imagen', 'Contenido', 'Fuente', 'Embed'];
+        const rows = [headers];
+        
+        news.forEach((item) => {
+            const row = [
+                item.title || '',
+                item.description || '',
+                item.category || '',
+                item.country || '',
+                item.date || '',
+                item.priority || '',
+                item.image || '',
+                item.content || '',
+                item.source || '',
+                item.embedCode || ''
+            ];
+            rows.push(row);
+        });
+        
+        const csvContent = rows.map(row => 
+            row.map(cell => {
+                if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+                    return `"${cell.replace(/"/g, '""')}"`;
+                }
+                return cell;
+            }).join(',')
+        ).join('\n');
+        
+        const blob = new Blob(['\uFEFF' + csvContent], { 
+            type: 'text/csv;charset=utf-8;' 
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `noticias_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert('✅ CSV exportado correctamente.');
+        
+    } catch (error) {
+        console.error('Error al exportar CSV:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// =============== CONTADORES - CORREGIDO ===============
 function updateNewsCounts() {
     console.log('🔄 Actualizando contadores con', news.length, 'noticias');
     
-    // Contador total
     const totalElement = document.getElementById('total-news');
     if (totalElement) {
         totalElement.textContent = news.length;
         console.log('Noticias disponibles:', news.length);
     }
     
-    // Inicializar contadores
     const categoryCounts = {
         'nacional': 0,
         'internacional': 0,
@@ -237,7 +324,6 @@ function updateNewsCounts() {
         'celebridades': 0
     };
     
-    // Contar noticias
     news.forEach(item => {
         const cat = normalizeCategory(item.category);
         
@@ -257,12 +343,12 @@ function updateNewsCounts() {
         else if (cat.includes('celebridad')) categoryCounts.celebridades++;
     });
     
-    // Actualizar HTML
     Object.keys(categoryCounts).forEach(cat => {
         const element = document.getElementById(`count-${cat}`);
         if (element) {
             const count = categoryCounts[cat];
             element.textContent = `${count} noticia${count !== 1 ? 's' : ''}`;
+            console.log(`Categoría ${cat}: ${count}`);
         }
     });
 }
@@ -282,7 +368,6 @@ function renderNews() {
     
     newsGrid.innerHTML = '';
     
-    // Filtrar noticias
     let filteredNews = [...news];
     
     if (currentCategory !== 'todos') {
@@ -300,7 +385,6 @@ function renderNews() {
         });
     }
     
-    // Si no hay noticias
     if (filteredNews.length === 0) {
         newsGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
@@ -317,7 +401,6 @@ function renderNews() {
         return;
     }
     
-    // Mostrar noticias
     filteredNews.forEach(item => {
         const card = document.createElement('div');
         card.className = 'recipe-card';
@@ -387,10 +470,8 @@ function openNewsModal(newsId) {
     const formattedDate = formatDate(item.date);
     const priorityClass = item.priority ? item.priority.toLowerCase() : 'media';
     
-    // Mostrar TODO el contenido
     let modalContent = `
         <div style="margin-bottom: 25px;">
-            <!-- Imagen -->
             <div style="text-align: center; margin-bottom: 20px;">
                 <img src="${item.image}" alt="${item.title}" 
                      onerror="this.src='${DEFAULT_IMAGE}'"
@@ -400,7 +481,6 @@ function openNewsModal(newsId) {
                 </p>
             </div>
             
-            <!-- Información -->
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
                     <div>
@@ -425,7 +505,6 @@ function openNewsModal(newsId) {
             </div>
         </div>
         
-        <!-- CONTENIDO COMPLETO -->
         <div style="margin-bottom: 25px;">
             <h4 style="color: var(--primary-dark); margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid var(--border-color);">
                 Contenido Completo
@@ -436,7 +515,6 @@ function openNewsModal(newsId) {
             </div>
         </div>
         
-        <!-- Fuente -->
         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent-red);">
             <div style="color: #666; font-size: 0.9rem;">
                 <p><strong>Fuente:</strong> ${item.source || 'No especificada'}</p>
@@ -603,7 +681,6 @@ function setupAdminTabs() {
 }
 
 function setupSyncFunctions() {
-    // BOTÓN PRINCIPAL DE SINCRONIZACIÓN
     const syncBtn = document.getElementById('sync-now-btn');
     if (syncBtn) {
         syncBtn.addEventListener('click', function() {
@@ -617,25 +694,10 @@ function setupSyncFunctions() {
             setTimeout(() => {
                 this.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Cargar de Google Sheets';
                 this.disabled = false;
-                
-                // Mostrar mensaje
-                const formStatus = document.getElementById('form-status');
-                if (formStatus) {
-                    formStatus.innerHTML = `
-                        <div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin-top: 10px; color: #155724;">
-                            ✅ Datos actualizados correctamente
-                        </div>
-                    `;
-                    
-                    setTimeout(() => {
-                        formStatus.innerHTML = '';
-                    }, 3000);
-                }
             }, 2000);
         });
     }
     
-    // BOTÓN ACTUALIZAR LISTA (SOLO ADMIN)
     const refreshBtn = document.getElementById('refresh-news-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
@@ -721,3 +783,4 @@ window.clearSearch = clearSearch;
 window.showAdminPanel = showAdminPanel;
 window.hideAdminPanel = hideAdminPanel;
 window.loadNewsFromGoogleSheets = loadNewsFromGoogleSheets;
+window.exportAllToCSV = exportAllToCSV;
