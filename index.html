@@ -482,7 +482,7 @@
                         
                         <div class="form-group">
                             <label for="news-content">Contenido Completo *</label>
-                            <textarea id="news-content" rows="5" required placeholder="Texto completo de la noticia"></textarea>
+                            <textarea id="news-content" rows="8" required placeholder="Texto completo de la noticia"></textarea>
                         </div>
                         
                         <div class="form-row">
@@ -616,7 +616,6 @@
         let searchQuery = '';
         let newsPerPage = 6;
         let currentPage = 1;
-        let isInitialized = false;
 
         // Clave para localStorage
         const STORAGE_KEY = 'zona_total_news_data';
@@ -640,12 +639,29 @@
                 loadMoreBtn.addEventListener('click', loadMoreNews);
             }
             
-            // Marcar como inicializado
-            isInitialized = true;
+            // Configurar botón "Todas"
+            setupAllButton();
             
             // Actualizar la interfaz
             updateUI();
         });
+
+        function setupAllButton() {
+            const todasButton = document.querySelector('.filter-btn[data-category="todas"]');
+            if (todasButton) {
+                todasButton.addEventListener('click', () => {
+                    currentCategory = 'todas';
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    todasButton.classList.add('active');
+                    currentPage = 1;
+                    filterNews();
+                    renderNews();
+                    updateLoadMoreButton();
+                });
+            }
+        }
 
         // =============== GESTIÓN DE NOTICIAS ===============
         function loadNewsFromStorage() {
@@ -740,39 +756,28 @@
             if (!dateString) return null;
             
             // Intentar diferentes formatos de fecha
-            const formats = [
-                'DD/MM/YYYY',
-                'YYYY-MM-DD',
-                'MM/DD/YYYY'
-            ];
-            
-            for (const format of formats) {
-                try {
-                    let date;
-                    
-                    if (format === 'DD/MM/YYYY') {
-                        const parts = dateString.split('/');
-                        if (parts.length === 3) {
-                            date = new Date(parts[2], parts[1] - 1, parts[0]);
-                        }
-                    } else if (format === 'YYYY-MM-DD') {
-                        date = new Date(dateString);
-                    } else if (format === 'MM/DD/YYYY') {
-                        const parts = dateString.split('/');
-                        if (parts.length === 3) {
-                            date = new Date(parts[2], parts[0] - 1, parts[1]);
-                        }
+            try {
+                // Formato DD/MM/YYYY
+                if (dateString.includes('/')) {
+                    const parts = dateString.split('/');
+                    if (parts.length === 3) {
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const year = parseInt(parts[2], 10);
+                        return new Date(year, month, day);
                     }
-                    
-                    if (date && !isNaN(date.getTime())) {
-                        return date;
-                    }
-                } catch {
-                    continue;
                 }
+                
+                // Formato YYYY-MM-DD
+                const date = new Date(dateString);
+                if (!isNaN(date.getTime())) {
+                    return date;
+                }
+                
+                return null;
+            } catch {
+                return null;
             }
-            
-            return null;
         }
 
         function addNews(newsData) {
@@ -847,7 +852,7 @@
             });
         }
 
-        // =============== EXPORTACIÓN CSV ===============
+        // =============== EXPORTACIÓN CSV - CORREGIDO ===============
         function exportToCSV() {
             try {
                 if (news.length === 0) {
@@ -874,19 +879,19 @@
                 // Agregar encabezados
                 csvRows.push(headers.join(','));
                 
-                // Agregar datos
+                // Agregar datos con manejo especial para contenido con comas y saltos de línea
                 news.forEach(item => {
                     const row = [
-                        escapeCSV(item.title || ''),
-                        escapeCSV(item.description || ''),
-                        escapeCSV(item.category || ''),
-                        escapeCSV(item.country || ''),
-                        escapeCSV(item.date || ''),
+                        escapeCSVField(item.title || ''),
+                        escapeCSVField(item.description || ''),
+                        escapeCSVField(item.category || ''),
+                        escapeCSVField(item.country || ''),
+                        escapeCSVField(item.date || ''),
                         item.priority || 1,
-                        escapeCSV(item.image || ''),
-                        escapeCSV(item.content || ''),
-                        escapeCSV(item.source || ''),
-                        escapeCSV(item.author || '')
+                        escapeCSVField(item.image || ''),
+                        escapeCSVField(item.content || item.description || ''),
+                        escapeCSVField(item.source || ''),
+                        escapeCSVField(item.author || '')
                     ];
                     csvRows.push(row.join(','));
                 });
@@ -919,14 +924,21 @@
             }
         }
 
-        function escapeCSV(text) {
-            if (!text) return '""';
-            // Escapar comillas dobles y agregar comillas si contiene comas o saltos de línea
-            const escaped = text.toString().replace(/"/g, '""');
-            if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')) {
+        function escapeCSVField(field) {
+            if (field === null || field === undefined) {
+                return '""';
+            }
+            
+            const fieldStr = String(field);
+            
+            // Si el campo contiene comas, saltos de línea o comillas, envolverlo en comillas
+            if (fieldStr.includes(',') || fieldStr.includes('\n') || fieldStr.includes('\r') || fieldStr.includes('"')) {
+                // Escapar comillas dobles duplicándolas
+                const escaped = fieldStr.replace(/"/g, '""');
                 return `"${escaped}"`;
             }
-            return escaped;
+            
+            return fieldStr;
         }
 
         function exportToJSON() {
@@ -1009,57 +1021,107 @@
                     reject(new Error('Error leyendo el archivo CSV'));
                 };
                 
-                reader.readAsText(file);
+                reader.readAsText(file, 'UTF-8');
             });
         }
 
         function parseCSV(csvText) {
-            const rows = csvText.split('\n').filter(row => row.trim() !== '');
+            const rows = [];
+            let currentRow = [];
+            let inQuotes = false;
+            let currentField = '';
+            
+            // Parsear manualmente el CSV
+            for (let i = 0; i < csvText.length; i++) {
+                const char = csvText[i];
+                const nextChar = csvText[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        // Comilla doble escapada
+                        currentField += '"';
+                        i++; // Saltar la siguiente comilla
+                    } else {
+                        // Inicio o fin de campo entre comillas
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    // Fin de campo
+                    currentRow.push(currentField);
+                    currentField = '';
+                } else if (char === '\n' && !inQuotes) {
+                    // Fin de fila
+                    currentRow.push(currentField);
+                    rows.push(currentRow);
+                    currentRow = [];
+                    currentField = '';
+                    
+                    // Saltar \r si está presente (Windows)
+                    if (nextChar === '\r') {
+                        i++;
+                    }
+                } else if (char === '\r' && !inQuotes) {
+                    // Ignorar \r solitario
+                    continue;
+                } else {
+                    // Carácter normal
+                    currentField += char;
+                }
+            }
+            
+            // Agregar la última fila si existe
+            if (currentField !== '' || currentRow.length > 0) {
+                currentRow.push(currentField);
+                rows.push(currentRow);
+            }
+            
             if (rows.length < 2) return [];
             
-            const headers = rows[0].split(',').map(h => h.trim());
+            const headers = rows[0].map(h => h.trim());
             const newsList = [];
             
             for (let i = 1; i < rows.length; i++) {
-                const values = parseCSVRow(rows[i]);
+                const row = rows[i];
                 const newsItem = {};
                 
                 headers.forEach((header, index) => {
-                    if (values[index] !== undefined) {
-                        const value = values[index].replace(/^"|"$/g, '').trim();
-                        switch(header.toLowerCase()) {
-                            case 'título':
-                                newsItem.title = value;
-                                break;
-                            case 'descripción':
-                                newsItem.description = value;
-                                break;
-                            case 'categoría':
-                            case 'categoria':
-                                newsItem.category = value;
-                                break;
-                            case 'país':
-                            case 'pais':
-                                newsItem.country = value;
-                                break;
-                            case 'fecha':
-                                newsItem.date = value;
-                                break;
-                            case 'prioridad':
-                                newsItem.priority = parseInt(value) || 1;
-                                break;
-                            case 'imagen':
-                                newsItem.image = value || getDefaultImage(newsItem.category);
-                                break;
-                            case 'contenido':
-                                newsItem.content = value;
-                                break;
-                            case 'fuente':
-                                newsItem.source = value || 'Zona Total';
-                                break;
-                            case 'autor':
-                                newsItem.author = value || 'Redacción';
-                                break;
+                    if (row[index] !== undefined) {
+                        const value = row[index].trim();
+                        if (value) {
+                            switch(header.toLowerCase()) {
+                                case 'título':
+                                    newsItem.title = value;
+                                    break;
+                                case 'descripción':
+                                    newsItem.description = value;
+                                    break;
+                                case 'categoría':
+                                case 'categoria':
+                                    newsItem.category = value;
+                                    break;
+                                case 'país':
+                                case 'pais':
+                                    newsItem.country = value;
+                                    break;
+                                case 'fecha':
+                                    newsItem.date = value;
+                                    break;
+                                case 'prioridad':
+                                    newsItem.priority = parseInt(value) || 1;
+                                    break;
+                                case 'imagen':
+                                    newsItem.image = value || getDefaultImage(newsItem.category);
+                                    break;
+                                case 'contenido':
+                                    newsItem.content = value;
+                                    break;
+                                case 'fuente':
+                                    newsItem.source = value || 'Zona Total';
+                                    break;
+                                case 'autor':
+                                    newsItem.author = value || 'Redacción';
+                                    break;
+                            }
                         }
                     }
                 });
@@ -1073,34 +1135,6 @@
             }
             
             return newsList;
-        }
-
-        function parseCSVRow(row) {
-            const values = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < row.length; i++) {
-                const char = row[i];
-                const nextChar = row[i + 1];
-                
-                if (char === '"') {
-                    if (inQuotes && nextChar === '"') {
-                        current += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === ',' && !inQuotes) {
-                    values.push(current);
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            
-            values.push(current);
-            return values;
         }
 
         function createBackup() {
@@ -1893,6 +1927,16 @@
             
             modalNewsTitle.textContent = newsItem.title || 'Detalles de la Noticia';
             
+            // Obtener el contenido completo
+            const content = newsItem.content || newsItem.description || 'Sin contenido disponible';
+            
+            // Convertir saltos de línea en párrafos HTML
+            const contentHtml = content
+                .split('\n')
+                .filter(paragraph => paragraph.trim() !== '')
+                .map(paragraph => `<p>${paragraph.trim()}</p>`)
+                .join('');
+            
             modalNewsContent.innerHTML = `
                 <div class="modal-news-content">
                     <div class="modal-meta">
@@ -1910,11 +1954,9 @@
                     ` : ''}
                     
                     <div class="modal-body">
-                        ${(newsItem.content || newsItem.description || 'Sin contenido disponible').split('\n').map(paragraph => 
-                            `<p>${paragraph}</p>`
-                        ).join('')}
+                        ${contentHtml}
                         
-                        ${newsItem.description ? `
+                        ${newsItem.description && newsItem.description !== content ? `
                             <div class="modal-summary">
                                 <h4>Resumen:</h4>
                                 <p>${newsItem.description}</p>
