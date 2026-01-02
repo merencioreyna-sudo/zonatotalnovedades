@@ -191,6 +191,33 @@
             font-size: 0.9rem;
         }
 
+        /* Estado vacío */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--accent-orange);
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .empty-state h3 {
+            color: var(--text-color);
+            margin-bottom: 15px;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -289,24 +316,6 @@
                 </div>
             </div>
             
-            <!-- Loading State -->
-            <div id="loading-news" class="loading-state">
-                <div class="loading-spinner">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </div>
-                <p>Cargando noticias...</p>
-            </div>
-            
-            <!-- Error State -->
-            <div id="error-news" class="error-state" style="display: none;">
-                <div class="error-content">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Error al cargar las noticias</h3>
-                    <p id="error-message"></p>
-                    <button class="btn btn-primary" id="retry-load-btn">Reintentar</button>
-                </div>
-            </div>
-            
             <!-- News Grid -->
             <div class="news-grid" id="news-grid">
                 <!-- News will be loaded dynamically -->
@@ -314,7 +323,7 @@
             
             <!-- Load More Button -->
             <div class="load-more-container">
-                <button class="btn btn-secondary" id="load-more-btn">
+                <button class="btn btn-secondary" id="load-more-btn" style="display: none;">
                     <i class="fas fa-plus"></i> Cargar más noticias
                 </button>
             </div>
@@ -607,6 +616,7 @@
         let searchQuery = '';
         let newsPerPage = 6;
         let currentPage = 1;
+        let isInitialized = false;
 
         // Clave para localStorage
         const STORAGE_KEY = 'zona_total_news_data';
@@ -630,12 +640,11 @@
                 loadMoreBtn.addEventListener('click', loadMoreNews);
             }
             
+            // Marcar como inicializado
+            isInitialized = true;
+            
             // Actualizar la interfaz
-            updateCategories();
-            filterNews();
-            renderNews();
-            renderCategories();
-            updateNewsCount();
+            updateUI();
         });
 
         // =============== GESTIÓN DE NOTICIAS ===============
@@ -643,127 +652,176 @@
             try {
                 const savedNews = localStorage.getItem(STORAGE_KEY);
                 if (savedNews) {
-                    news = JSON.parse(savedNews);
-                    console.log(`Cargadas ${news.length} noticias desde localStorage`);
+                    const parsedNews = JSON.parse(savedNews);
                     
-                    // Extraer categorías
-                    categories = new Set();
-                    news.forEach(item => {
-                        if (item.category) {
-                            categories.add(item.category);
-                        }
-                    });
-                    
-                    // Si no hay noticias, agregar ejemplos
-                    if (news.length === 0) {
-                        loadSampleNews();
+                    // Validar que sean noticias válidas
+                    if (Array.isArray(parsedNews)) {
+                        news = parsedNews.filter(item => 
+                            item && 
+                            typeof item === 'object' && 
+                            item.id && 
+                            item.title && 
+                            item.category
+                        );
+                        
+                        console.log(`Cargadas ${news.length} noticias desde localStorage`);
+                        
+                        // Extraer categorías
+                        categories = new Set();
+                        news.forEach(item => {
+                            if (item.category && typeof item.category === 'string') {
+                                categories.add(item.category);
+                            }
+                        });
+                    } else {
+                        news = [];
+                        console.log('No hay noticias válidas en localStorage');
                     }
                 } else {
-                    // Cargar noticias de ejemplo
-                    loadSampleNews();
+                    news = [];
+                    console.log('No hay noticias guardadas en localStorage');
                 }
             } catch (error) {
                 console.error('Error cargando noticias:', error);
-                loadSampleNews();
+                news = [];
             }
+            
+            // Ordenar noticias por fecha (más recientes primero)
+            sortNewsByDate();
         }
 
         function saveNewsToStorage() {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(news));
-                console.log(`Guardadas ${news.length} noticias en localStorage`);
+                // Limpiar duplicados antes de guardar
+                const uniqueNews = removeDuplicates(news);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(uniqueNews));
+                console.log(`Guardadas ${uniqueNews.length} noticias en localStorage`);
                 return true;
             } catch (error) {
                 console.error('Error guardando noticias:', error);
-                showError('Error al guardar las noticias');
+                showMessage('Error al guardar las noticias', 'error');
                 return false;
             }
         }
 
-        function loadSampleNews() {
-            news = [
-                {
-                    id: Date.now() + 1,
-                    title: "Nueva Ley de Educación aprobada en el Congreso",
-                    description: "El Congreso Nacional ha aprobado hoy la nueva Ley de Educación con una amplia mayoría.",
-                    category: "Política",
-                    country: "España",
-                    date: "15/01/2024",
-                    priority: 5,
-                    image: "https://images.unsplash.com/photo-1589652717521-10c0d092dea9?w=800&q=80",
-                    content: "El Congreso Nacional ha aprobado hoy la nueva Ley de Educación con una amplia mayoría. La ley incluye reformas en el sistema de evaluación y mayores recursos para escuelas públicas.",
-                    source: "Zona Total",
-                    author: "Carlos Méndez",
-                    excerpt: "Reforma educativa aprobada con apoyo multipartidista",
-                    createdAt: new Date().toISOString()
-                },
-                {
-                    id: Date.now() + 2,
-                    title: "Equipo local gana el campeonato nacional",
-                    description: "En un emocionante partido final, nuestro equipo local se coronó campeón nacional.",
-                    category: "Deportes",
-                    country: "México",
-                    date: "14/01/2024",
-                    priority: 4,
-                    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80",
-                    content: "En un emocionante partido final, nuestro equipo local se coronó campeón nacional tras vencer 3-2 en tiempo extra.",
-                    source: "Zona Total",
-                    author: "Ana López",
-                    excerpt: "Victoria histórica en el torneo nacional de fútbol",
-                    createdAt: new Date().toISOString()
-                },
-                {
-                    id: Date.now() + 3,
-                    title: "Nueva tecnología revoluciona el mercado",
-                    description: "Una startup local ha desarrollado una tecnología que promete cambiar la industria.",
-                    category: "Tecnología",
-                    country: "Estados Unidos",
-                    date: "13/01/2024",
-                    priority: 3,
-                    image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&q=80",
-                    content: "Una startup local ha desarrollado una tecnología que promete cambiar la forma en que interactuamos con dispositivos inteligentes.",
-                    source: "Zona Total",
-                    author: "Laura Rodríguez",
-                    excerpt: "Innovación tecnológica con potencial disruptivo",
-                    createdAt: new Date().toISOString()
+        function removeDuplicates(newsArray) {
+            const seen = new Set();
+            return newsArray.filter(item => {
+                // Crear una clave única basada en título, fecha y categoría
+                const key = `${item.title}-${item.date}-${item.category}`;
+                if (seen.has(key)) {
+                    return false;
                 }
+                seen.add(key);
+                return true;
+            });
+        }
+
+        function sortNewsByDate() {
+            news.sort((a, b) => {
+                try {
+                    // Intentar parsear fechas
+                    const dateA = parseDate(a.date);
+                    const dateB = parseDate(b.date);
+                    
+                    if (dateA && dateB) {
+                        return dateB - dateA; // Más reciente primero
+                    }
+                    
+                    // Si no se pueden parsear las fechas, usar prioridad
+                    return (b.priority || 1) - (a.priority || 1);
+                } catch {
+                    return 0;
+                }
+            });
+        }
+
+        function parseDate(dateString) {
+            if (!dateString) return null;
+            
+            // Intentar diferentes formatos de fecha
+            const formats = [
+                'DD/MM/YYYY',
+                'YYYY-MM-DD',
+                'MM/DD/YYYY'
             ];
             
-            categories = new Set(['Política', 'Deportes', 'Tecnología']);
-            saveNewsToStorage();
+            for (const format of formats) {
+                try {
+                    let date;
+                    
+                    if (format === 'DD/MM/YYYY') {
+                        const parts = dateString.split('/');
+                        if (parts.length === 3) {
+                            date = new Date(parts[2], parts[1] - 1, parts[0]);
+                        }
+                    } else if (format === 'YYYY-MM-DD') {
+                        date = new Date(dateString);
+                    } else if (format === 'MM/DD/YYYY') {
+                        const parts = dateString.split('/');
+                        if (parts.length === 3) {
+                            date = new Date(parts[2], parts[0] - 1, parts[1]);
+                        }
+                    }
+                    
+                    if (date && !isNaN(date.getTime())) {
+                        return date;
+                    }
+                } catch {
+                    continue;
+                }
+            }
+            
+            return null;
         }
 
         function addNews(newsData) {
             // Validar datos
             if (!newsData.title || !newsData.description || !newsData.category) {
-                throw new Error('Faltan campos requeridos');
+                throw new Error('Faltan campos requeridos: Título, Descripción y Categoría');
             }
             
-            // Crear objeto de noticia completo
-            const newsItem = {
-                id: Date.now(),
+            // Limpiar y validar datos
+            const cleanedData = {
+                id: Date.now() + Math.floor(Math.random() * 1000), // ID único
                 title: newsData.title.trim(),
                 description: newsData.description.trim(),
                 category: newsData.category,
-                country: newsData.country || '',
+                country: (newsData.country || '').trim(),
                 date: newsData.date || new Date().toLocaleDateString('es-ES'),
                 priority: parseInt(newsData.priority) || 1,
                 image: newsData.image || getDefaultImage(newsData.category),
                 content: newsData.content.trim() || newsData.description.trim(),
-                source: newsData.source || 'Zona Total',
-                author: newsData.author || 'Redacción',
+                source: (newsData.source || 'Zona Total').trim(),
+                author: (newsData.author || 'Redacción').trim(),
                 excerpt: generateExcerpt(newsData.description, 150),
                 createdAt: new Date().toISOString()
             };
             
-            // Agregar a la lista
-            news.unshift(newsItem); // Agregar al inicio
-            categories.add(newsItem.category);
+            // Validar que no sea un duplicado exacto
+            const isDuplicate = news.some(item => 
+                item.title === cleanedData.title && 
+                item.date === cleanedData.date && 
+                item.category === cleanedData.category
+            );
+            
+            if (isDuplicate) {
+                throw new Error('Esta noticia ya existe');
+            }
+            
+            // Agregar al inicio del array
+            news.unshift(cleanedData);
+            
+            // Actualizar categorías
+            categories.add(cleanedData.category);
+            
+            // Ordenar noticias
+            sortNewsByDate();
             
             // Guardar en almacenamiento
             saveNewsToStorage();
             
-            return newsItem;
+            return cleanedData;
         }
 
         function deleteNews(id) {
@@ -912,7 +970,7 @@
                         const importedNews = parseCSV(csvText);
                         
                         if (importedNews.length === 0) {
-                            reject(new Error('No se encontraron noticias en el archivo CSV'));
+                            reject(new Error('No se encontraron noticias válidas en el archivo CSV'));
                             return;
                         }
                         
@@ -926,14 +984,15 @@
                             }
                         });
                         
+                        // Eliminar duplicados
+                        news = removeDuplicates(news);
+                        
+                        // Ordenar noticias
+                        sortNewsByDate();
+                        
                         // Guardar y actualizar
                         saveNewsToStorage();
-                        updateCategories();
-                        filterNews();
-                        renderNews();
-                        renderCategories();
-                        updateNewsCount();
-                        updateAdminStats();
+                        updateUI();
                         
                         resolve({
                             success: true,
@@ -1005,7 +1064,7 @@
                     }
                 });
                 
-                // Asegurar campos esenciales
+                // Validar campos esenciales
                 if (newsItem.title && newsItem.description && newsItem.category) {
                     if (!newsItem.content) newsItem.content = newsItem.description;
                     if (!newsItem.excerpt) newsItem.excerpt = generateExcerpt(newsItem.description, 150);
@@ -1097,28 +1156,41 @@
 
         function generateExcerpt(text, maxLength) {
             if (!text) return '';
-            if (text.length <= maxLength) return text;
+            const cleanText = text.trim();
+            if (cleanText.length <= maxLength) return cleanText;
             
-            return text.substring(0, maxLength) + '...';
+            return cleanText.substring(0, maxLength) + '...';
         }
 
         function formatDate(dateString) {
             if (!dateString) return 'Sin fecha';
             try {
-                const date = new Date(dateString);
-                return date.toLocaleDateString('es-ES');
+                const date = parseDate(dateString);
+                if (date) {
+                    return date.toLocaleDateString('es-ES');
+                }
+                return dateString;
             } catch {
                 return dateString;
             }
         }
 
         // =============== INTERFAZ DE USUARIO ===============
+        function updateUI() {
+            updateCategories();
+            filterNews();
+            renderNews();
+            renderCategories();
+            updateNewsCount();
+            updateLoadMoreButton();
+        }
+
         function updateCategories() {
             const filterButtons = document.getElementById('filter-buttons');
             if (!filterButtons) return;
             
-            // Mantener solo el botón "Todas"
-            const existingButtons = filterButtons.querySelectorAll('.filter-btn');
+            // Limpiar botones existentes (excepto "Todas")
+            const existingButtons = Array.from(filterButtons.querySelectorAll('.filter-btn'));
             existingButtons.forEach(btn => {
                 if (btn.dataset.category !== 'todas') {
                     btn.remove();
@@ -1127,23 +1199,26 @@
             
             // Agregar botones para cada categoría
             Array.from(categories).sort().forEach(category => {
-                const button = document.createElement('button');
-                button.className = 'filter-btn';
-                button.textContent = category;
-                button.dataset.category = category.toLowerCase().replace(/ /g, '-');
-                
-                button.addEventListener('click', () => {
-                    currentCategory = category;
-                    document.querySelectorAll('.filter-btn').forEach(btn => {
-                        btn.classList.remove('active');
+                if (category && typeof category === 'string') {
+                    const button = document.createElement('button');
+                    button.className = 'filter-btn';
+                    button.textContent = category;
+                    button.dataset.category = category.toLowerCase().replace(/ /g, '-');
+                    
+                    button.addEventListener('click', () => {
+                        currentCategory = category;
+                        document.querySelectorAll('.filter-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                        });
+                        button.classList.add('active');
+                        currentPage = 1;
+                        filterNews();
+                        renderNews();
+                        updateLoadMoreButton();
                     });
-                    button.classList.add('active');
-                    currentPage = 1;
-                    filterNews();
-                    renderNews();
-                });
-                
-                filterButtons.appendChild(button);
+                    
+                    filterButtons.appendChild(button);
+                }
             });
         }
 
@@ -1157,7 +1232,7 @@
                 // Filtrar por búsqueda
                 if (searchQuery) {
                     const searchText = (item.title + ' ' + item.description + ' ' + item.content + ' ' + item.category).toLowerCase();
-                    return searchText.includes(searchQuery);
+                    return searchText.includes(searchQuery.toLowerCase());
                 }
                 
                 return true;
@@ -1168,55 +1243,35 @@
             const newsGrid = document.getElementById('news-grid');
             if (!newsGrid) return;
             
+            // Limpiar completamente el grid
+            newsGrid.innerHTML = '';
+            
+            // Si no hay noticias
+            if (filteredNews.length === 0) {
+                newsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-newspaper"></i>
+                        <h3>No hay noticias disponibles</h3>
+                        <p>${searchQuery ? 'No se encontraron noticias con esos términos de búsqueda.' : 'Agrega tu primera noticia desde el panel de administración.'}</p>
+                        ${searchQuery ? 
+                            '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 10px;">Limpiar búsqueda</button>' : 
+                            ''
+                        }
+                    </div>
+                `;
+                return;
+            }
+            
             // Calcular noticias para esta página
             const startIndex = (currentPage - 1) * newsPerPage;
             const endIndex = startIndex + newsPerPage;
             const newsToShow = filteredNews.slice(startIndex, endIndex);
             
-            // Si no hay noticias
-            if (filteredNews.length === 0) {
-                newsGrid.innerHTML = `
-                    <div class="no-news" style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
-                        <i class="fas fa-newspaper" style="font-size: 4rem; color: var(--accent-orange); margin-bottom: 20px; opacity: 0.7;"></i>
-                        <h3 style="color: var(--text-color); margin-bottom: 15px;">No se encontraron noticias</h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 25px;">
-                            ${searchQuery ? 'Prueba con otros términos de búsqueda.' : 'No hay noticias disponibles.'}
-                        </p>
-                        ${searchQuery ? 
-                            '<button onclick="clearSearch()" class="btn btn-primary" style="margin: 10px;">Limpiar búsqueda</button>' : 
-                            ''
-                        }
-                        ${news.length === 0 ? 
-                            '<button onclick="loadSampleNews(); updateCategories(); filterNews(); renderNews();" class="btn btn-secondary" style="margin: 10px;">Cargar Noticias de Ejemplo</button>' : 
-                            ''
-                        }
-                    </div>
-                `;
-                
-                const loadMoreBtn = document.getElementById('load-more-btn');
-                if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-                return;
-            }
-            
             // Renderizar noticias
-            newsGrid.innerHTML = '';
-            
             newsToShow.forEach(newsItem => {
                 const newsCard = createNewsCard(newsItem);
                 newsGrid.appendChild(newsCard);
             });
-            
-            // Mostrar/ocultar botón "Cargar más"
-            const loadMoreBtn = document.getElementById('load-more-btn');
-            if (loadMoreBtn) {
-                if (endIndex < filteredNews.length) {
-                    loadMoreBtn.style.display = 'inline-block';
-                } else {
-                    loadMoreBtn.style.display = 'none';
-                }
-            }
-            
-            updateNewsCount();
         }
 
         function createNewsCard(newsItem) {
@@ -1225,26 +1280,26 @@
             
             newsCard.innerHTML = `
                 <div class="news-image">
-                    <img src="${newsItem.image}" alt="${newsItem.title}" 
+                    <img src="${newsItem.image || getDefaultImage(newsItem.category)}" alt="${newsItem.title}" 
                          onerror="this.src='${getDefaultImage(newsItem.category)}'">
-                    <div class="news-category">${newsItem.category}</div>
-                    ${newsItem.priority > 1 ? `<div class="news-priority">Destacado</div>` : ''}
+                    <div class="news-category">${newsItem.category || 'General'}</div>
+                    ${(newsItem.priority || 1) > 1 ? `<div class="news-priority">Destacado</div>` : ''}
                 </div>
                 <div class="news-content">
                     <div class="news-header">
-                        <h3 class="news-title">${newsItem.title}</h3>
+                        <h3 class="news-title">${newsItem.title || 'Sin título'}</h3>
                         <div class="news-date">${formatDate(newsItem.date)}</div>
                     </div>
-                    <p class="news-excerpt">${newsItem.excerpt || newsItem.description}</p>
+                    <p class="news-excerpt">${newsItem.excerpt || newsItem.description || 'Sin descripción'}</p>
                     <div class="news-meta">
                         <div class="news-author">
                             <i class="fas fa-user"></i>
-                            <span>${newsItem.author || newsItem.source}</span>
+                            <span>${newsItem.author || newsItem.source || 'Zona Total'}</span>
                         </div>
                         ${newsItem.country ? `<div class="news-country"><i class="fas fa-globe"></i> ${newsItem.country}</div>` : ''}
                     </div>
                     <div class="news-actions">
-                        <button class="btn btn-primary read-more-btn" data-id="${newsItem.id}">
+                        <button class="btn btn-primary read-more-btn">
                             <i class="fas fa-readme"></i> Leer más
                         </button>
                     </div>
@@ -1265,10 +1320,23 @@
             
             categoriesGrid.innerHTML = '';
             
+            // Si no hay categorías
+            if (categories.size === 0) {
+                categoriesGrid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
+                        <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                        <p style="color: var(--text-secondary);">No hay categorías disponibles</p>
+                    </div>
+                `;
+                return;
+            }
+            
             // Contar noticias por categoría
             const categoryCounts = {};
             news.forEach(item => {
-                categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1;
+                if (item.category) {
+                    categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1;
+                }
             });
             
             // Renderizar cada categoría
@@ -1314,6 +1382,7 @@
                     currentPage = 1;
                     filterNews();
                     renderNews();
+                    updateLoadMoreButton();
                     
                     // Scroll a noticias
                     document.getElementById('news').scrollIntoView({ behavior: 'smooth' });
@@ -1330,9 +1399,22 @@
             }
         }
 
+        function updateLoadMoreButton() {
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            if (loadMoreBtn) {
+                const totalPages = Math.ceil(filteredNews.length / newsPerPage);
+                if (currentPage < totalPages && filteredNews.length > newsPerPage) {
+                    loadMoreBtn.style.display = 'inline-block';
+                } else {
+                    loadMoreBtn.style.display = 'none';
+                }
+            }
+        }
+
         function loadMoreNews() {
             currentPage++;
             renderNews();
+            updateLoadMoreButton();
             
             // Scroll suave a las nuevas noticias
             const newsGrid = document.getElementById('news-grid');
@@ -1412,6 +1494,11 @@
             // Formulario agregar noticia
             const addNewsForm = document.getElementById('add-news-form');
             if (addNewsForm) {
+                // Establecer fecha actual por defecto
+                const today = new Date();
+                const formattedDate = today.toLocaleDateString('es-ES');
+                document.getElementById('news-date').value = formattedDate;
+                
                 addNewsForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     
@@ -1420,7 +1507,7 @@
                         description: document.getElementById('news-description').value,
                         category: document.getElementById('news-category').value,
                         country: document.getElementById('news-country').value,
-                        date: document.getElementById('news-date').value || new Date().toLocaleDateString('es-ES'),
+                        date: document.getElementById('news-date').value,
                         priority: parseInt(document.getElementById('news-priority').value) || 1,
                         image: document.getElementById('news-image').value || getDefaultImage(document.getElementById('news-category').value),
                         content: document.getElementById('news-content').value,
@@ -1443,11 +1530,7 @@
                         addNews(newsData);
                         
                         // Actualizar interfaz
-                        updateCategories();
-                        filterNews();
-                        renderNews();
-                        renderCategories();
-                        updateNewsCount();
+                        updateUI();
                         updateAdminStats();
                         renderAdminNewsList();
                         
@@ -1456,9 +1539,16 @@
                             <p>Se ha agregado "${newsData.title}" a la lista de noticias.</p>
                         </div>`;
                         
-                        // Limpiar formulario
-                        addNewsForm.reset();
-                        document.getElementById('news-date').value = '';
+                        // Limpiar formulario (excepto la fecha)
+                        document.getElementById('news-title').value = '';
+                        document.getElementById('news-description').value = '';
+                        document.getElementById('news-category').value = '';
+                        document.getElementById('news-country').value = '';
+                        document.getElementById('news-content').value = '';
+                        document.getElementById('news-image').value = '';
+                        document.getElementById('news-source').value = 'Zona Total';
+                        document.getElementById('news-author').value = 'Redacción';
+                        document.getElementById('news-priority').value = '3';
                         
                         // Actualizar pestaña de gestión
                         setTimeout(() => {
@@ -1494,11 +1584,7 @@
                         news = [];
                         categories = new Set();
                         localStorage.removeItem(STORAGE_KEY);
-                        updateCategories();
-                        filterNews();
-                        renderNews();
-                        renderCategories();
-                        updateNewsCount();
+                        updateUI();
                         updateAdminStats();
                         renderAdminNewsList();
                         showMessage('Todas las noticias han sido eliminadas', 'success');
@@ -1514,9 +1600,9 @@
                     const newsItems = document.querySelectorAll('.admin-news-item');
                     
                     newsItems.forEach(item => {
-                        const title = item.querySelector('.admin-news-title').textContent.toLowerCase();
-                        const category = item.querySelector('.admin-news-category').textContent.toLowerCase();
-                        const excerpt = item.querySelector('.admin-news-excerpt').textContent.toLowerCase();
+                        const title = item.querySelector('.admin-news-title')?.textContent.toLowerCase() || '';
+                        const category = item.querySelector('.admin-news-category')?.textContent.toLowerCase() || '';
+                        const excerpt = item.querySelector('.admin-news-excerpt')?.textContent.toLowerCase() || '';
                         
                         if (title.includes(query) || category.includes(query) || excerpt.includes(query)) {
                             item.style.display = 'block';
@@ -1684,11 +1770,11 @@
                 
                 newsElement.innerHTML = `
                     <div class="admin-news-header">
-                        <div class="admin-news-title">${newsItem.title}</div>
+                        <div class="admin-news-title">${newsItem.title || 'Sin título'}</div>
                         <div class="admin-news-date">${formatDate(newsItem.date)}</div>
                     </div>
-                    <div class="admin-news-category">${newsItem.category}</div>
-                    <div class="admin-news-excerpt">${newsItem.excerpt || newsItem.description.substring(0, 100)}...</div>
+                    <div class="admin-news-category">${newsItem.category || 'General'}</div>
+                    <div class="admin-news-excerpt">${newsItem.excerpt || (newsItem.description ? newsItem.description.substring(0, 100) + '...' : 'Sin descripción')}</div>
                     <div class="admin-news-actions" style="margin-top: 15px; display: flex; gap: 10px;">
                         <button class="btn btn-small edit-news-btn" style="background-color: #ff9800; color: white; padding: 5px 10px; font-size: 0.8rem;">
                             <i class="fas fa-edit"></i> Editar
@@ -1702,14 +1788,10 @@
                 // Botón eliminar
                 const deleteBtn = newsElement.querySelector('.delete-news-btn');
                 deleteBtn.addEventListener('click', () => {
-                    if (confirm(`¿Eliminar la noticia "${newsItem.title}"?`)) {
+                    if (confirm(`¿Eliminar la noticia "${newsItem.title || 'Sin título'}"?`)) {
                         deleteNews(newsItem.id);
                         newsElement.remove();
-                        updateCategories();
-                        filterNews();
-                        renderNews();
-                        renderCategories();
-                        updateNewsCount();
+                        updateUI();
                         updateAdminStats();
                         showMessage('Noticia eliminada', 'success');
                     }
@@ -1718,7 +1800,7 @@
                 // Botón editar (simbólico - muestra datos)
                 const editBtn = newsElement.querySelector('.edit-news-btn');
                 editBtn.addEventListener('click', () => {
-                    alert(`Para editar esta noticia, elimínela y créela nuevamente.\n\nTítulo: ${newsItem.title}\nCategoría: ${newsItem.category}\nFecha: ${newsItem.date}`);
+                    alert(`Para editar esta noticia, elimínela y créela nuevamente.\n\nTítulo: ${newsItem.title}\nCategoría: ${newsItem.category}\nFecha: ${formatDate(newsItem.date)}`);
                 });
                 
                 adminNewsList.appendChild(newsElement);
@@ -1773,10 +1855,11 @@
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
-                    searchQuery = e.target.value.toLowerCase();
+                    searchQuery = e.target.value;
                     currentPage = 1;
                     filterNews();
                     renderNews();
+                    updateLoadMoreButton();
                 });
             }
         }
@@ -1808,26 +1891,26 @@
             
             if (!newsModal || !modalNewsTitle || !modalNewsContent) return;
             
-            modalNewsTitle.textContent = newsItem.title;
+            modalNewsTitle.textContent = newsItem.title || 'Detalles de la Noticia';
             
             modalNewsContent.innerHTML = `
                 <div class="modal-news-content">
                     <div class="modal-meta">
-                        <div class="modal-category">${newsItem.category}</div>
+                        <div class="modal-category">${newsItem.category || 'General'}</div>
                         <div><i class="fas fa-calendar"></i> ${formatDate(newsItem.date)}</div>
-                        <div><i class="fas fa-user"></i> ${newsItem.author || newsItem.source}</div>
+                        <div><i class="fas fa-user"></i> ${newsItem.author || newsItem.source || 'Zona Total'}</div>
                         ${newsItem.country ? `<div><i class="fas fa-globe"></i> ${newsItem.country}</div>` : ''}
                     </div>
                     
                     ${newsItem.image ? `
                     <div class="modal-image">
-                        <img src="${newsItem.image}" alt="${newsItem.title}"
+                        <img src="${newsItem.image}" alt="${newsItem.title || 'Noticia'}"
                              onerror="this.src='${getDefaultImage(newsItem.category)}'">
                     </div>
                     ` : ''}
                     
                     <div class="modal-body">
-                        ${newsItem.content.split('\n').map(paragraph => 
+                        ${(newsItem.content || newsItem.description || 'Sin contenido disponible').split('\n').map(paragraph => 
                             `<p>${paragraph}</p>`
                         ).join('')}
                         
@@ -1863,12 +1946,12 @@
             if (!window.currentNewsItem) return;
             
             const newsItem = window.currentNewsItem;
-            const shareText = `Lee "${newsItem.title}" en Zona Total Noticias`;
+            const shareText = `Lee "${newsItem.title || 'esta noticia'}" en Zona Total Noticias`;
             const shareUrl = window.location.href;
             
             if (navigator.share) {
                 navigator.share({
-                    title: newsItem.title,
+                    title: newsItem.title || 'Zona Total Noticias',
                     text: shareText,
                     url: shareUrl
                 });
@@ -1895,6 +1978,7 @@
             currentPage = 1;
             filterNews();
             renderNews();
+            updateLoadMoreButton();
         };
 
         window.openNewsModal = openNewsModal;
